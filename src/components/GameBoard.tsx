@@ -24,6 +24,13 @@ interface Props {
 
 export function GameBoard({ state, bursts }: Props) {
   const snakeIndexMap = new Map(state.snake.map((segment, index) => [pointToKey(segment), index]));
+  const enemyIndexMap = new Map<string, { enemyIdx: number; segmentIdx: number }>();
+  state.enemies.forEach((enemy, enemyIdx) => {
+    if (!enemy.alive) return;
+    enemy.snake.forEach((segment, segmentIdx) => {
+      enemyIndexMap.set(pointToKey(segment), { enemyIdx, segmentIdx });
+    });
+  });
   const foodKeys = new Set(state.foods.map(pointToKey));
   const powerUpKey = state.powerUp ? pointToKey(state.powerUp.position) : null;
   const cells = Array.from({ length: BOARD_WIDTH * BOARD_HEIGHT }, (_, i) => ({
@@ -33,10 +40,14 @@ export function GameBoard({ state, bursts }: Props) {
 
   return (
     <section className="board-shell" aria-label="Candy snake board">
-      <div className="game-board">
+      <div
+        className="game-board"
+        style={{ "--board-cols": BOARD_WIDTH, "--board-rows": BOARD_HEIGHT } as CSSProperties}
+      >
         {cells.map((cell) => {
           const key = pointToKey(cell);
           const snakeIndex = snakeIndexMap.get(key);
+          const enemyInfo = enemyIndexMap.get(key);
           const isFood = foodKeys.has(key);
           const isPowerUp = key === powerUpKey && state.powerUp;
 
@@ -47,6 +58,10 @@ export function GameBoard({ state, bursts }: Props) {
           if (typeof snakeIndex === "number") {
             className += snakeIndex === 0 ? " snake head" : " snake";
             style["--snake-hue"] = `${(snakeIndex * 24 + 80) % 360}`;
+          } else if (enemyInfo) {
+            const enemy = state.enemies[enemyInfo.enemyIdx];
+            className += enemyInfo.segmentIdx === 0 ? " enemy enemy-head" : " enemy";
+            style["--enemy-hue"] = `${(enemy.hue + enemyInfo.segmentIdx * 10) % 360}`;
           } else if (isFood) {
             className += " food";
           } else if (isPowerUp && state.powerUp) {
@@ -61,7 +76,11 @@ export function GameBoard({ state, bursts }: Props) {
           );
         })}
       </div>
-      <div className="board-fx-layer" aria-hidden>
+      <div
+        className="board-fx-layer"
+        style={{ "--board-cols": BOARD_WIDTH, "--board-rows": BOARD_HEIGHT } as CSSProperties}
+        aria-hidden
+      >
         {bursts.map((burst) => (
           <span
             key={burst.id}

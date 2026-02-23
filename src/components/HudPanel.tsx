@@ -14,7 +14,11 @@ interface Props {
   isPaused: boolean;
   isGameOver: boolean;
   started: boolean;
+  foodCount: number;
+  enemyCount: number;
   activeTimers: ActiveTimers;
+  onFoodCountChange: (count: number) => void;
+  onEnemyCountChange: (count: number) => void;
   onPauseToggle: () => void;
   onRestart: () => void;
 }
@@ -31,7 +35,11 @@ export function HudPanel({
   isPaused,
   isGameOver,
   started,
+  foodCount,
+  enemyCount,
   activeTimers,
+  onFoodCountChange,
+  onEnemyCountChange,
   onPauseToggle,
   onRestart
 }: Props) {
@@ -82,6 +90,30 @@ export function HudPanel({
             activeTimers.ghostWall <= 0 &&
             activeTimers.doubleScore <= 0 && <span className="effect-empty">No active effects</span>}
         </div>
+      </div>
+
+      <div className="settings-panel">
+        <h2>Game Setup</h2>
+        <label className="slider-row">
+          <span>Beans on board: {foodCount}</span>
+          <input
+            type="range"
+            min={1}
+            max={12}
+            value={foodCount}
+            onChange={(event) => onFoodCountChange(Number(event.target.value))}
+          />
+        </label>
+        <label className="slider-row">
+          <span>PvE snakes: {enemyCount}</span>
+          <input
+            type="range"
+            min={1}
+            max={3}
+            value={enemyCount}
+            onChange={(event) => onEnemyCountChange(Number(event.target.value))}
+          />
+        </label>
       </div>
 
       <div className="controls">

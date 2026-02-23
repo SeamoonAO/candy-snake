@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { restart, step, togglePause, turn, createInitialState } from "../game/engine";
+import {
+  createInitialState,
+  restart,
+  setEnemyCount,
+  setFoodCount,
+  step,
+  togglePause,
+  turn
+} from "../game/engine";
 import { getEffectRemainingMs } from "../game/powerups";
 import type { Direction, GameState } from "../game/types";
 import { loadStats, saveStats } from "../storage/stats";
@@ -160,11 +168,21 @@ export function useSnakeGame() {
     setBursts([]);
   };
 
+  const updateFoodCount = (count: number) => {
+    setState((prev) => setFoodCount(prev, count));
+  };
+
+  const updateEnemyCount = (count: number) => {
+    setState((prev) => setEnemyCount(prev, count));
+  };
+
   return {
     state,
     bursts,
     started,
     activeTimers,
+    updateFoodCount,
+    updateEnemyCount,
     startGame,
     pauseOrResume,
     restartGame

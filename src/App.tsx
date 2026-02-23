@@ -4,8 +4,17 @@ import { Overlay } from "./components/Overlay";
 import { useSnakeGame } from "./hooks/useSnakeGame";
 
 export default function App() {
-  const { state, bursts, started, activeTimers, startGame, pauseOrResume, restartGame } =
-    useSnakeGame();
+  const {
+    state,
+    bursts,
+    started,
+    activeTimers,
+    updateFoodCount,
+    updateEnemyCount,
+    startGame,
+    pauseOrResume,
+    restartGame
+  } = useSnakeGame();
 
   return (
     <main className="app">
@@ -17,7 +26,11 @@ export default function App() {
         isPaused={state.isPaused}
         isGameOver={state.isGameOver}
         started={started}
+        foodCount={state.foodCount}
+        enemyCount={state.enemyCount}
         activeTimers={activeTimers}
+        onFoodCountChange={updateFoodCount}
+        onEnemyCountChange={updateEnemyCount}
         onPauseToggle={pauseOrResume}
         onRestart={restartGame}
       />

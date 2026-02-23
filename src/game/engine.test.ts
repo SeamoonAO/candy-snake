@@ -2,11 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
-  FOOD_COUNT,
+  DEFAULT_ENEMY_COUNT,
+  DEFAULT_FOOD_COUNT,
   INITIAL_TICK_MS,
   MIN_BASE_TICK_MS
 } from "./constants";
-import { createInitialState, step, turn } from "./engine";
+import { createInitialState, setEnemyCount, setFoodCount, step, turn } from "./engine";
 import type { GameState } from "./types";
 
 function runningState(base = createInitialState()): GameState {
@@ -21,7 +22,8 @@ describe("engine", () => {
     expect(state.tickMs).toBe(INITIAL_TICK_MS);
     expect(state.isPaused).toBe(true);
     expect(state.powerUp).toBeNull();
-    expect(state.foods).toHaveLength(FOOD_COUNT);
+    expect(state.foods).toHaveLength(DEFAULT_FOOD_COUNT);
+    expect(state.enemies).toHaveLength(DEFAULT_ENEMY_COUNT);
   });
 
   it("blocks immediate reverse direction", () => {
@@ -214,5 +216,23 @@ describe("engine", () => {
     const next = step(state, 1000);
     expect(next.isGameOver).toBe(true);
     vi.restoreAllMocks();
+  });
+
+  it("supports runtime food count adjustment", () => {
+    const state = createInitialState();
+    const more = setFoodCount(state, 10);
+    expect(more.foodCount).toBe(10);
+    expect(more.foods).toHaveLength(10);
+
+    const less = setFoodCount(more, 2);
+    expect(less.foodCount).toBe(2);
+    expect(less.foods).toHaveLength(2);
+  });
+
+  it("supports runtime enemy count adjustment", () => {
+    const state = createInitialState();
+    const triple = setEnemyCount(state, 3);
+    expect(triple.enemyCount).toBe(3);
+    expect(triple.enemies.filter((enemy) => enemy.alive).length).toBe(3);
   });
 });

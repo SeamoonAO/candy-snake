@@ -1,9 +1,17 @@
 import type { PowerUpType } from "./types";
 
-export const BOARD_WIDTH = 24;
-export const BOARD_HEIGHT = 24;
+export const BOARD_WIDTH = 32;
+export const BOARD_HEIGHT = 32;
 export const INITIAL_SNAKE_LENGTH = 4;
-export const FOOD_COUNT = 3;
+export const ENEMY_INITIAL_LENGTH = 4;
+
+export const MIN_FOOD_COUNT = 1;
+export const MAX_FOOD_COUNT = 12;
+export const DEFAULT_FOOD_COUNT = 5;
+
+export const MIN_ENEMY_COUNT = 1;
+export const MAX_ENEMY_COUNT = 3;
+export const DEFAULT_ENEMY_COUNT = 1;
 
 export const INITIAL_TICK_MS = 150;
 export const SCORE_PER_SPEED_STEP = 5;
