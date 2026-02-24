@@ -1,0 +1,201 @@
+{
+  "version": "2.7",
+  "children": [
+    {
+      "type": "frame",
+      "id": "rootV2",
+      "name": "Candy Snake Prototypes V2",
+      "x": 0,
+      "y": 0,
+      "width": 14500,
+      "height": 980,
+      "fill": "#F7F8FC",
+      "layout": "horizontal",
+      "gap": 72,
+      "padding": 40,
+      "clip": false,
+      "children": [
+        {
+          "type": "frame",
+          "id": "v2start",
+          "name": "Screen - Start",
+          "width": 1320,
+          "height": 860,
+          "fill": "#FFF9EA",
+          "cornerRadius": 20,
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 20,
+          "children": [
+            { "type": "text", "id": "v2startTitle", "content": "Candy Snake - Start State", "fontFamily": "Inter", "fontSize": 30, "fill": "#1F2937" },
+            { "type": "text", "id": "v2startTag", "content": "State: Overlay / Ready to Start", "fontFamily": "Inter", "fontSize": 16, "fill": "#EA580C" },
+            { "type": "text", "id": "v2startNote1", "content": "Left HUD + right board + start overlay CTA", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" },
+            { "type": "text", "id": "v2startNote2", "content": "Settings visible before round starts", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "v2playing",
+          "name": "Screen - Playing",
+          "width": 1320,
+          "height": 860,
+          "fill": "#ECFDF5",
+          "cornerRadius": 20,
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 20,
+          "children": [
+            { "type": "text", "id": "v2playingTitle", "content": "Candy Snake - Playing State", "fontFamily": "Inter", "fontSize": 30, "fill": "#1F2937" },
+            { "type": "text", "id": "v2playingTag", "content": "State: Real-time gameplay", "fontFamily": "Inter", "fontSize": 16, "fill": "#059669" },
+            { "type": "text", "id": "v2playingNote1", "content": "Multiple beans + 1-3 PvE snakes + pickups", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" },
+            { "type": "text", "id": "v2playingNote2", "content": "Burst FX enabled with readability guardrails", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "v2paused",
+          "name": "Screen - Paused",
+          "width": 1320,
+          "height": 860,
+          "fill": "#EEF2FF",
+          "cornerRadius": 20,
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 20,
+          "children": [
+            { "type": "text", "id": "v2pausedTitle", "content": "Candy Snake - Paused State", "fontFamily": "Inter", "fontSize": 30, "fill": "#1F2937" },
+            { "type": "text", "id": "v2pausedTag", "content": "State: Pause overlay active", "fontFamily": "Inter", "fontSize": 16, "fill": "#4F46E5" },
+            { "type": "text", "id": "v2pausedNote1", "content": "Gameplay frozen, UI remains readable", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" },
+            { "type": "text", "id": "v2pausedNote2", "content": "Settings apply mode explicitly documented", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "v2over",
+          "name": "Screen - Game Over",
+          "width": 1320,
+          "height": 860,
+          "fill": "#FFF1F2",
+          "cornerRadius": 20,
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 20,
+          "children": [
+            { "type": "text", "id": "v2overTitle", "content": "Candy Snake - Game Over State", "fontFamily": "Inter", "fontSize": 30, "fill": "#1F2937" },
+            { "type": "text", "id": "v2overTag", "content": "State: End of round / restart CTA", "fontFamily": "Inter", "fontSize": 16, "fill": "#E11D48" },
+            { "type": "text", "id": "v2overNote1", "content": "Final score, best score, replay action", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" },
+            { "type": "text", "id": "v2overNote2", "content": "Loss cause feedback kept concise", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "v2flow",
+          "name": "Spec - Interaction Flow",
+          "width": 1320,
+          "height": 860,
+          "fill": "#EEF6FF",
+          "cornerRadius": 20,
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 20,
+          "children": [
+            { "type": "text", "id": "v2flowTitle", "content": "Interaction Flow Spec", "fontFamily": "Inter", "fontSize": 30, "fill": "#1D4ED8" },
+            { "type": "text", "id": "v2flowLine1", "content": "Start -> Playing -> Paused -> Playing -> Game Over -> Restart", "fontFamily": "Inter", "fontSize": 18, "fill": "#1E293B" },
+            { "type": "text", "id": "v2flowLine2", "content": "Define trigger + guard + target for every transition", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" },
+            { "type": "text", "id": "v2flowLine3", "content": "No implicit state jumps", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "v2hud",
+          "name": "Spec - HUD Detail",
+          "width": 1320,
+          "height": 860,
+          "fill": "#ECFDF5",
+          "cornerRadius": 20,
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 20,
+          "children": [
+            { "type": "text", "id": "v2hudTitle", "content": "HUD Detail Spec", "fontFamily": "Inter", "fontSize": 30, "fill": "#047857" },
+            { "type": "text", "id": "v2hudLine1", "content": "Priority: Score > Effects > Best > Rounds > Tick", "fontFamily": "Inter", "fontSize": 18, "fill": "#1E293B" },
+            { "type": "text", "id": "v2hudLine2", "content": "Responsive narrow mode keeps score and alerts visible", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" },
+            { "type": "text", "id": "v2hudLine3", "content": "Timer precision: one decimal second", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "v2settings",
+          "name": "Spec - Settings Panel",
+          "width": 1320,
+          "height": 860,
+          "fill": "#FFF7ED",
+          "cornerRadius": 20,
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 20,
+          "children": [
+            { "type": "text", "id": "v2settingsTitle", "content": "Settings Panel Spec", "fontFamily": "Inter", "fontSize": 30, "fill": "#C2410C" },
+            { "type": "text", "id": "v2settingsLine1", "content": "Beans: range 1-12, step 1, default 5", "fontFamily": "Inter", "fontSize": 18, "fill": "#1E293B" },
+            { "type": "text", "id": "v2settingsLine2", "content": "PvE snakes: range 1-3, step 1, default 1", "fontFamily": "Inter", "fontSize": 18, "fill": "#1E293B" },
+            { "type": "text", "id": "v2settingsLine3", "content": "Apply mode: immediate update in current round", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "v2visual",
+          "name": "Spec - Visual System",
+          "width": 1320,
+          "height": 860,
+          "fill": "#F5F3FF",
+          "cornerRadius": 20,
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 20,
+          "children": [
+            { "type": "text", "id": "v2visualTitle", "content": "Board Visual System", "fontFamily": "Inter", "fontSize": 30, "fill": "#6D28D9" },
+            { "type": "text", "id": "v2visualLine1", "content": "Player and PvE snakes must stay visually distinct", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" },
+            { "type": "text", "id": "v2visualLine2", "content": "Beans and power-ups require both color and shape cues", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" },
+            { "type": "text", "id": "v2visualLine3", "content": "Status-critical UI follows accessibility contrast targets", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "v2motion",
+          "name": "Spec - Motion & FX",
+          "width": 1320,
+          "height": 860,
+          "fill": "#F0FDFA",
+          "cornerRadius": 20,
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 20,
+          "children": [
+            { "type": "text", "id": "v2motionTitle", "content": "FX / Motion Rules", "fontFamily": "Inter", "fontSize": 30, "fill": "#0F766E" },
+            { "type": "text", "id": "v2motionLine1", "content": "Bean burst ~520ms, power-up burst slightly stronger", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" },
+            { "type": "text", "id": "v2motionLine2", "content": "Cap concurrent bursts to preserve readability", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" },
+            { "type": "text", "id": "v2motionLine3", "content": "Critical gameplay layers cannot be obscured", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "v2edge",
+          "name": "Screen - Edge Cases",
+          "width": 1320,
+          "height": 860,
+          "fill": "#FFFBEB",
+          "cornerRadius": 20,
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 20,
+          "children": [
+            { "type": "text", "id": "v2edgeTitle", "content": "Edge-State Prototypes", "fontFamily": "Inter", "fontSize": 30, "fill": "#B45309" },
+            { "type": "text", "id": "v2edgeLine1", "content": "Near-full board: limited-space warning", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" },
+            { "type": "text", "id": "v2edgeLine2", "content": "Enemy respawn fallback: delayed retry feedback", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" },
+            { "type": "text", "id": "v2edgeLine3", "content": "Shield trigger moment: clear one-hit-save confirmation", "fontFamily": "Inter", "fontSize": 16, "fill": "#334155" }
+          ]
+        }
+      ]
+    }
+  ]
+}

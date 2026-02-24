@@ -1,0 +1,937 @@
+{
+  "version": "2.8",
+  "children": [
+    {
+      "type": "frame",
+      "id": "rootCanvas",
+      "x": 0,
+      "y": 0,
+      "name": "Candy Snake Prototypes V2",
+      "width": 14500,
+      "height": 980,
+      "fill": "#F7F8FC",
+      "gap": 72,
+      "padding": 40,
+      "children": [
+        {
+          "type": "frame",
+          "id": "screenStart",
+          "name": "Screen - Start",
+          "width": 1320,
+          "height": 860,
+          "fill": "#FFF9EA",
+          "cornerRadius": 20,
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "startTitle",
+              "fill": "#1F2937",
+              "content": "Candy Snake - Start State",
+              "fontFamily": "Inter",
+              "fontSize": 30,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "startTag",
+              "fill": "#EA580C",
+              "content": "State: Overlay / Ready to Start",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "startApp",
+              "width": "fill_container",
+              "height": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "startHud",
+                  "width": 320,
+                  "height": "fill_container",
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 16,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "startHudTitle",
+                      "fill": "#111827",
+                      "content": "HUD Panel",
+                      "fontFamily": "Inter",
+                      "fontSize": 22,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "startHudLine1",
+                      "fill": "#6B7280",
+                      "content": "Score / Best / Rounds / Tick",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "startHudLine2",
+                      "fill": "#6B7280",
+                      "content": "Settings: Beans slider + PvE snakes slider",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "startBoard",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 16,
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "startBoardTitle",
+                      "fill": "#111827",
+                      "content": "Game Board (32x32)",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "startGrid",
+                      "width": 860,
+                      "height": 760,
+                      "fill": "#FFFDF5",
+                      "cornerRadius": 14,
+                      "layout": "vertical",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "startOverlayText",
+                          "fill": "#334155",
+                          "content": "Start Overlay: Ready for sugar rush?",
+                          "fontFamily": "Inter",
+                          "fontSize": 24,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "screenPlaying",
+          "name": "Screen - Playing",
+          "width": 1320,
+          "height": 860,
+          "fill": "#ECFDF5",
+          "cornerRadius": 20,
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "playingTitle",
+              "fill": "#1F2937",
+              "content": "Candy Snake - Playing State",
+              "fontFamily": "Inter",
+              "fontSize": 30,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "playingTag",
+              "fill": "#059669",
+              "content": "State: Real-time gameplay",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "playingApp",
+              "width": "fill_container",
+              "height": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "playingHud",
+                  "width": 320,
+                  "height": "fill_container",
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 16,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "playingHudLine1",
+                      "fill": "#065F46",
+                      "content": "HUD + Live Effects + Sliders",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "playingHudLine2",
+                      "fill": "#6B7280",
+                      "content": "Beans: dynamic count",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "playingHudLine3",
+                      "fill": "#6B7280",
+                      "content": "PvE snakes: 1-3",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "playingBoard",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 16,
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "playingBoardTitle",
+                      "fill": "#065F46",
+                      "content": "Board with player snake + PvE snakes + multiple beans",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "playingGrid",
+                      "width": 860,
+                      "height": 760,
+                      "fill": "#F0FDF4",
+                      "cornerRadius": 14,
+                      "layout": "vertical",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "playingOverlayText",
+                          "fill": "#166534",
+                          "content": "Live board + burst effects",
+                          "fontFamily": "Inter",
+                          "fontSize": 24,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "screenPaused",
+          "name": "Screen - Paused",
+          "width": 1320,
+          "height": 860,
+          "fill": "#EEF2FF",
+          "cornerRadius": 20,
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "pausedTitle",
+              "fill": "#1F2937",
+              "content": "Candy Snake - Paused State",
+              "fontFamily": "Inter",
+              "fontSize": 30,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "pausedTag",
+              "fill": "#4F46E5",
+              "content": "State: Pause overlay active",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "pausedApp",
+              "width": "fill_container",
+              "height": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "pausedHud",
+                  "width": 320,
+                  "height": "fill_container",
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 16,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "pausedHudLine1",
+                      "fill": "#3730A3",
+                      "content": "HUD (frozen values)",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "pausedBoard",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 16,
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "pausedBoardTitle",
+                      "fill": "#3730A3",
+                      "content": "Board dimmed + Pause overlay",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "pausedGrid",
+                      "width": 860,
+                      "height": 760,
+                      "fill": "#EEF2FF",
+                      "cornerRadius": 14,
+                      "layout": "vertical",
+                      "padding": 24,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "pausedOverlayBig",
+                          "fill": "#4338CA",
+                          "content": "PAUSED",
+                          "fontFamily": "Inter",
+                          "fontSize": 42,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "pausedOverlaySmall",
+                          "fill": "#6366F1",
+                          "content": "Press Space to resume",
+                          "fontFamily": "Inter",
+                          "fontSize": 20,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "screenOver",
+          "name": "Screen - Game Over",
+          "width": 1320,
+          "height": 860,
+          "fill": "#FFF1F2",
+          "cornerRadius": 20,
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "overTitle",
+              "fill": "#1F2937",
+              "content": "Candy Snake - Game Over State",
+              "fontFamily": "Inter",
+              "fontSize": 30,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "overTag",
+              "fill": "#E11D48",
+              "content": "State: End of round / restart CTA",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "overApp",
+              "width": "fill_container",
+              "height": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "overHud",
+                  "width": 320,
+                  "height": "fill_container",
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 16,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "overHudLine1",
+                      "fill": "#9F1239",
+                      "content": "Final score + best score",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "overBoard",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 16,
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "overBoardTitle",
+                      "fill": "#9F1239",
+                      "content": "Board + Game Over modal",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "overGrid",
+                      "width": 860,
+                      "height": 760,
+                      "fill": "#FFF1F2",
+                      "cornerRadius": 14,
+                      "layout": "vertical",
+                      "gap": 8,
+                      "padding": 24,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "overBig",
+                          "fill": "#BE123C",
+                          "content": "GAME OVER",
+                          "fontFamily": "Inter",
+                          "fontSize": 42,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "overScore",
+                          "fill": "#E11D48",
+                          "content": "Your score: 42",
+                          "fontFamily": "Inter",
+                          "fontSize": 24,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "overCTA",
+                          "fill": "#9F1239",
+                          "content": "Play Again button",
+                          "fontFamily": "Inter",
+                          "fontSize": 20,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "3BSX5",
+          "name": "Spec - Interaction Flow",
+          "width": 1320,
+          "height": 860,
+          "fill": "#EEF6FF",
+          "cornerRadius": 20,
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "6HvVE",
+              "fill": "#1D4ED8",
+              "content": "Interaction Flow Spec",
+              "fontFamily": "Inter",
+              "fontSize": 30,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "4j7DK",
+              "fill": "#1E293B",
+              "content": "Start -> Playing -> Paused -> Playing -> Game Over -> Restart",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "W7QLr",
+              "fill": "#334155",
+              "content": "Each transition must define: trigger + guard + target state",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "nQQTG",
+              "fill": "#334155",
+              "content": "Settings changed in pause: applies immediately to board quantities",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "PJ1Zi",
+              "fill": "#334155",
+              "content": "No hidden transitions allowed",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "KnI7L",
+          "name": "Spec - HUD Detail",
+          "width": 1320,
+          "height": 860,
+          "fill": "#ECFDF5",
+          "cornerRadius": 20,
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "1BsiO",
+              "fill": "#047857",
+              "content": "HUD Detail Spec",
+              "fontFamily": "Inter",
+              "fontSize": 30,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "LSv0Q",
+              "fill": "#1E293B",
+              "content": "Priority: Score > Effects > Best > Rounds > Tick",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "tmTlz",
+              "fill": "#334155",
+              "content": "Responsive rule: narrow width collapses secondary metrics",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "Dhnte",
+              "fill": "#334155",
+              "content": "Effect timers show remaining time with one decimal",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "9Cwnk",
+              "fill": "#334155",
+              "content": "Overflow fallback: keep score and alerts always visible",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "wLMBX",
+          "name": "Spec - Settings Panel",
+          "width": 1320,
+          "height": 860,
+          "fill": "#FFF7ED",
+          "cornerRadius": 20,
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "UakR5",
+              "fill": "#C2410C",
+              "content": "Settings Panel Spec",
+              "fontFamily": "Inter",
+              "fontSize": 30,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "DCVu2",
+              "fill": "#1E293B",
+              "content": "Beans slider: range 1-12, step 1, default 5",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "WZ6Fy",
+              "fill": "#1E293B",
+              "content": "PvE slider: range 1-3, step 1, default 1",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "4W1M3",
+              "fill": "#334155",
+              "content": "Apply mode: immediate update in current round",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "KgsqW",
+              "fill": "#334155",
+              "content": "Display min/max labels and helper hint text",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "kVHps",
+          "name": "Spec - Visual System",
+          "width": 1320,
+          "height": 860,
+          "fill": "#F5F3FF",
+          "cornerRadius": 20,
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "ruEsI",
+              "fill": "#6D28D9",
+              "content": "Board Visual System",
+              "fontFamily": "Inter",
+              "fontSize": 30,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "w0TQz",
+              "fill": "#334155",
+              "content": "Player snake: rainbow progression + distinct head marker",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "Yt2Kb",
+              "fill": "#334155",
+              "content": "Enemy snakes: fixed hue families with strong separation",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "KduBo",
+              "fill": "#334155",
+              "content": "Beans and power-ups: unique color and shape labels",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "jUnTD",
+              "fill": "#334155",
+              "content": "Accessibility: non-color cues required for status-critical items",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "aGxLI",
+          "name": "Spec - Motion & FX",
+          "width": 1320,
+          "height": 860,
+          "fill": "#F0FDFA",
+          "cornerRadius": 20,
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "FBvwG",
+              "fill": "#0F766E",
+              "content": "FX / Motion Rules",
+              "fontFamily": "Inter",
+              "fontSize": 30,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "nwnKa",
+              "fill": "#334155",
+              "content": "Bean burst duration: ~520ms, power-up burst slightly stronger",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "Mkdg2",
+              "fill": "#334155",
+              "content": "Max concurrent bursts: cap to keep board readable",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "uK3wl",
+              "fill": "#334155",
+              "content": "Pause and game-over overlays fade in quickly (<200ms)",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "qTGD6",
+              "fill": "#334155",
+              "content": "Do not obscure snake head during critical movement",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "jPUsg",
+          "name": "Screen - Edge Cases",
+          "width": 1320,
+          "height": 860,
+          "fill": "#FFFBEB",
+          "cornerRadius": 20,
+          "layout": "vertical",
+          "gap": 14,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "NITQ2",
+              "fill": "#B45309",
+              "content": "Edge-State Prototypes",
+              "fontFamily": "Inter",
+              "fontSize": 30,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "FxEOQ",
+              "name": "row",
+              "width": "fill_container",
+              "height": "fill_container",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "gTdvI",
+                  "name": "case1",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 14,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 12,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "KoiaV",
+                      "fill": "#92400E",
+                      "content": "Near-full board",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "EEyFX",
+                      "fill": "#334155",
+                      "content": "UI shows limited-space warning",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "3IkL0",
+                  "name": "case2",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 14,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 12,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "9hgiG",
+                      "fill": "#92400E",
+                      "content": "Enemy respawn fallback",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "XweVx",
+                      "fill": "#334155",
+                      "content": "Blocked spawn -> delayed retry feedback",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "LpSen",
+                  "name": "case3",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 14,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 12,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "4vUWH",
+                      "fill": "#92400E",
+                      "content": "Shield trigger moment",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ZZ7sF",
+                      "fill": "#334155",
+                      "content": "One-hit save + clear visual confirmation",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
