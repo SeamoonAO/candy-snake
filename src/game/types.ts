@@ -2,6 +2,10 @@ export type Point = { x: number; y: number };
 
 export type Direction = "up" | "down" | "left" | "right";
 
+export type EnemyPersonality = "greedy" | "hunter" | "careful";
+
+export type GameMode = "endless" | "adventure";
+
 export type PowerUpType =
   | "SPEED_UP"
   | "SLOW_DOWN"
@@ -30,6 +34,7 @@ export interface EnemySnake {
   direction: Direction;
   alive: boolean;
   hue: number;
+  personality: EnemyPersonality;
 }
 
 export interface GameState {
@@ -40,9 +45,16 @@ export interface GameState {
   foods: Point[];
   foodCount: number;
   enemyCount: number;
+  mode: GameMode;
+  currentLevel: number;
+  levelGoal: number;
+  obstacles: Point[];
   powerUp: PowerUpInstance | null;
   effects: ActiveEffects;
   score: number;
+  comboCount: number;
+  comboMultiplier: number;
+  comboExpiresAt: number | null;
   bestScore: number;
   gamesPlayed: number;
   tickMs: number;

@@ -4,12 +4,13 @@ import {
   restart,
   setEnemyCount,
   setFoodCount,
+  setGameMode,
   step,
   togglePause,
   turn
 } from "../game/engine";
 import { getEffectRemainingMs } from "../game/powerups";
-import type { Direction, GameState } from "../game/types";
+import type { Direction, GameMode, GameState } from "../game/types";
 import { loadStats, saveStats } from "../storage/stats";
 
 interface BurstEffect {
@@ -176,6 +177,10 @@ export function useSnakeGame() {
     setState((prev) => setEnemyCount(prev, count));
   };
 
+  const updateGameMode = (mode: GameMode) => {
+    setState((prev) => setGameMode(prev, mode));
+  };
+
   return {
     state,
     bursts,
@@ -183,6 +188,7 @@ export function useSnakeGame() {
     activeTimers,
     updateFoodCount,
     updateEnemyCount,
+    updateGameMode,
     startGame,
     pauseOrResume,
     restartGame

@@ -112,6 +112,89 @@ body {
   margin-top: 16px;
 }
 
+.mode-panel,
+.combo-panel {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid #00000014;
+  background: linear-gradient(180deg, #ffffffc9, #fff7ecce);
+}
+
+.mode-header,
+.combo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mode-panel h2,
+.combo-panel h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.mode-chip,
+.combo-badge {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  background: #fff;
+  border: 1px solid #00000012;
+}
+
+.combo-badge.hot {
+  color: #fff;
+  background: linear-gradient(135deg, #ff7a49, #ff4fb1);
+  border-color: transparent;
+  box-shadow: 0 8px 16px #ff7a4940;
+}
+
+.segmented {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.seg-btn {
+  border: 1px solid #00000014;
+  background: #ffffffbd;
+  color: var(--text-strong);
+  border-radius: 12px;
+  padding: 9px 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.seg-btn.active {
+  color: #fff;
+  background: linear-gradient(180deg, #ffb266, #ff7851);
+  border-color: transparent;
+  box-shadow: 0 8px 18px #ff9b5542;
+}
+
+.level-card {
+  margin-top: 10px;
+  border-radius: 12px;
+  background: #fff9;
+  border: 1px solid #00000010;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.combo-copy,
+.setup-note {
+  margin: 10px 0 0;
+  color: var(--text-soft);
+  font-size: 0.84rem;
+}
+
 .effects h2 {
   margin: 0 0 8px;
   font-size: 1rem;
@@ -315,6 +398,14 @@ body {
 .cell.enemy-head {
   filter: saturate(1.1) brightness(0.92);
   box-shadow: inset 0 0 0 2px #ffffff7a;
+}
+
+.cell.obstacle {
+  background:
+    linear-gradient(135deg, #ffc46d 0 35%, #0000 35% 100%),
+    linear-gradient(315deg, #ff8e70 0 35%, #0000 35% 100%),
+    linear-gradient(180deg, #5b4364, #3d3348);
+  box-shadow: inset 0 0 0 1px #ffffff30;
 }
 
 .cell.food {

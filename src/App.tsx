@@ -11,6 +11,7 @@ export default function App() {
     activeTimers,
     updateFoodCount,
     updateEnemyCount,
+    updateGameMode,
     startGame,
     pauseOrResume,
     restartGame
@@ -28,9 +29,15 @@ export default function App() {
         started={started}
         foodCount={state.foodCount}
         enemyCount={state.enemyCount}
+        mode={state.mode}
+        currentLevel={state.currentLevel}
+        levelGoal={state.levelGoal}
+        comboCount={state.comboCount}
+        comboMultiplier={state.comboMultiplier}
         activeTimers={activeTimers}
         onFoodCountChange={updateFoodCount}
         onEnemyCountChange={updateEnemyCount}
+        onModeChange={updateGameMode}
         onPauseToggle={pauseOrResume}
         onRestart={restartGame}
       />

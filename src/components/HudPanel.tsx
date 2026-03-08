@@ -1,3 +1,5 @@
+import type { GameMode } from "../game/types";
+
 interface ActiveTimers {
   speedUp: number;
   slowDown: number;
@@ -16,9 +18,15 @@ interface Props {
   started: boolean;
   foodCount: number;
   enemyCount: number;
+  mode: GameMode;
+  currentLevel: number;
+  levelGoal: number;
+  comboCount: number;
+  comboMultiplier: number;
   activeTimers: ActiveTimers;
   onFoodCountChange: (count: number) => void;
   onEnemyCountChange: (count: number) => void;
+  onModeChange: (mode: GameMode) => void;
   onPauseToggle: () => void;
   onRestart: () => void;
 }
@@ -37,9 +45,15 @@ export function HudPanel({
   started,
   foodCount,
   enemyCount,
+  mode,
+  currentLevel,
+  levelGoal,
+  comboCount,
+  comboMultiplier,
   activeTimers,
   onFoodCountChange,
   onEnemyCountChange,
+  onModeChange,
   onPauseToggle,
   onRestart
 }: Props) {
@@ -66,6 +80,47 @@ export function HudPanel({
           <label>Tick</label>
           <strong>{tickMs} ms</strong>
         </div>
+      </div>
+
+      <div className="mode-panel">
+        <div className="mode-header">
+          <h2>Mode</h2>
+          <span className="mode-chip">{mode === "adventure" ? "Adventure" : "Endless"}</span>
+        </div>
+        <div className="segmented">
+          <button
+            type="button"
+            className={mode === "endless" ? "seg-btn active" : "seg-btn"}
+            onClick={() => onModeChange("endless")}
+          >
+            Endless
+          </button>
+          <button
+            type="button"
+            className={mode === "adventure" ? "seg-btn active" : "seg-btn"}
+            onClick={() => onModeChange("adventure")}
+          >
+            Adventure
+          </button>
+        </div>
+        <div className="level-card">
+          <span>Level {currentLevel}</span>
+          <strong>{mode === "adventure" ? `${score}/${levelGoal}` : "Free play"}</strong>
+        </div>
+      </div>
+
+      <div className="combo-panel">
+        <div className="combo-header">
+          <h2>Combo</h2>
+          <span className={comboCount > 1 ? "combo-badge hot" : "combo-badge"}>
+            x{comboMultiplier}
+          </span>
+        </div>
+        <p className="combo-copy">
+          {comboCount > 1
+            ? `${comboCount} streak foods chained. Keep eating before the timer drops.`
+            : "Eat again quickly to build score multipliers."}
+        </p>
       </div>
 
       <div className="effects">
@@ -114,6 +169,7 @@ export function HudPanel({
             onChange={(event) => onEnemyCountChange(Number(event.target.value))}
           />
         </label>
+        <p className="setup-note">Adventure mode adds obstacle maps and level goals on top of your chosen setup.</p>
       </div>
 
       <div className="controls">

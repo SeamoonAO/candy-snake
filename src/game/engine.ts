@@ -1,11 +1,14 @@
 import {
+  ADVENTURE_LEVEL_GOALS,
   BOARD_HEIGHT,
   BOARD_WIDTH,
+  COMBO_WINDOW_MS,
   DEFAULT_ENEMY_COUNT,
   DEFAULT_FOOD_COUNT,
   ENEMY_INITIAL_LENGTH,
   INITIAL_SNAKE_LENGTH,
   INITIAL_TICK_MS,
+  MAX_COMBO_MULTIPLIER,
   MAX_ENEMY_COUNT,
   MAX_FOOD_COUNT,
   MIN_BASE_TICK_MS,
@@ -18,7 +21,14 @@ import {
 } from "./constants";
 import { applyPowerUp, choosePowerUpType, cleanupExpiredEffects, isEffectActive } from "./powerups";
 import { chance, createRng, pointToKey, randomEmptyCell } from "./random";
-import type { Direction, EnemySnake, GameState, Point } from "./types";
+import type {
+  Direction,
+  EnemyPersonality,
+  EnemySnake,
+  GameMode,
+  GameState,
+  Point
+} from "./types";
 
 const DIRECTION_VECTORS: Record<Direction, Point> = {
   up: { x: 0, y: -1 },
@@ -46,6 +56,13 @@ const TURN_RIGHT: Record<Direction, Direction> = {
   right: "down",
   down: "left",
   left: "up"
+};
+
+const ENEMY_PERSONALITIES: EnemyPersonality[] = ["greedy", "hunter", "careful"];
+const ENEMY_MOVE_CADENCE: Record<EnemyPersonality, number> = {
+  greedy: 2,
+  hunter: 3,
+  careful: 2
 };
 
 function clamp(value: number, min: number, max: number): number {
@@ -81,11 +98,97 @@ function computeTickMs(state: GameState, now: number): number {
   let tick = computeBaseTickMs(state.score);
   if (isEffectActive(state.effects.speedUpUntil, now)) tick *= 0.75;
   if (isEffectActive(state.effects.slowDownUntil, now)) tick *= 1.35;
+  if (state.mode === "adventure") tick *= Math.max(0.76, 1 - (state.currentLevel - 1) * 0.05);
   return Math.max(40, Math.round(tick));
 }
 
 function addPoints(set: Set<string>, points: Point[]): void {
   for (const point of points) set.add(pointToKey(point));
+}
+
+function createObstacleSet(obstacles: Point[]): Set<string> {
+  return new Set(obstacles.map(pointToKey));
+}
+
+function sanitizeObstacles(obstacles: Point[], occupiedPoints: Point[]): Point[] {
+  const occupied = new Set(occupiedPoints.map(pointToKey));
+  return obstacles.filter((point) => !occupied.has(pointToKey(point)));
+}
+
+function buildObstaclePattern(level: number): Point[] {
+  const midX = Math.floor(BOARD_WIDTH / 2);
+  const midY = Math.floor(BOARD_HEIGHT / 2);
+  const pattern = ((level - 1) % 4) + 1;
+  const points: Point[] = [];
+
+  if (pattern === 1) {
+    for (let y = 7; y < BOARD_HEIGHT - 7; y += 1) {
+      if (Math.abs(y - midY) <= 2) continue;
+      points.push({ x: 8, y }, { x: BOARD_WIDTH - 9, y });
+    }
+  }
+
+  if (pattern === 2) {
+    for (let x = 6; x < BOARD_WIDTH - 6; x += 1) {
+      if (Math.abs(x - midX) <= 2) continue;
+      points.push({ x, y: 8 }, { x, y: BOARD_HEIGHT - 9 });
+    }
+    for (let y = 10; y < BOARD_HEIGHT - 10; y += 1) {
+      if (Math.abs(y - midY) <= 3) continue;
+      points.push({ x: midX, y });
+    }
+  }
+
+  if (pattern === 3) {
+    for (let offset = 0; offset < 10; offset += 1) {
+      if (offset === 4 || offset === 5) continue;
+      points.push({ x: 6 + offset, y: 6 + offset });
+      points.push({ x: BOARD_WIDTH - 7 - offset, y: 6 + offset });
+      points.push({ x: 6 + offset, y: BOARD_HEIGHT - 7 - offset });
+      points.push({ x: BOARD_WIDTH - 7 - offset, y: BOARD_HEIGHT - 7 - offset });
+    }
+  }
+
+  if (pattern === 4) {
+    for (let x = 9; x < BOARD_WIDTH - 9; x += 1) {
+      if (Math.abs(x - midX) <= 2) continue;
+      points.push({ x, y: midY - 4 }, { x, y: midY + 4 });
+    }
+    for (let y = 9; y < BOARD_HEIGHT - 9; y += 1) {
+      if (Math.abs(y - midY) <= 2) continue;
+      points.push({ x: midX - 6, y }, { x: midX + 6, y });
+    }
+  }
+
+  return points;
+}
+
+function getLevelGoal(level: number): number {
+  if (level <= ADVENTURE_LEVEL_GOALS.length) return ADVENTURE_LEVEL_GOALS[level - 1];
+  const lastGoal = ADVENTURE_LEVEL_GOALS[ADVENTURE_LEVEL_GOALS.length - 1];
+  return lastGoal + (level - ADVENTURE_LEVEL_GOALS.length) * 28;
+}
+
+function getLevelForScore(score: number): { level: number; goal: number } {
+  let level = 1;
+  while (score >= getLevelGoal(level)) level += 1;
+  return { level, goal: getLevelGoal(level) };
+}
+
+function createLevelState(mode: GameMode, score: number): Pick<GameState, "currentLevel" | "levelGoal" | "obstacles"> {
+  if (mode === "endless") {
+    return {
+      currentLevel: 1,
+      levelGoal: getLevelGoal(1),
+      obstacles: []
+    };
+  }
+  const { level, goal } = getLevelForScore(score);
+  return {
+    currentLevel: level,
+    levelGoal: goal,
+    obstacles: buildObstaclePattern(level)
+  };
 }
 
 function collectEnemyOccupied(enemies: EnemySnake[]): Set<string> {
@@ -94,6 +197,14 @@ function collectEnemyOccupied(enemies: EnemySnake[]): Set<string> {
     if (!enemy.alive) continue;
     addPoints(occupied, enemy.snake);
   }
+  return occupied;
+}
+
+function createOccupiedBase(state: Pick<GameState, "snake" | "enemies" | "powerUp" | "obstacles">): Set<string> {
+  const occupied = new Set<string>(state.snake.map(pointToKey));
+  addPoints(occupied, state.enemies.filter((enemy) => enemy.alive).flatMap((enemy) => enemy.snake));
+  addPoints(occupied, state.obstacles);
+  if (state.powerUp) occupied.add(pointToKey(state.powerUp.position));
   return occupied;
 }
 
@@ -121,6 +232,10 @@ function canPlaceSnake(snake: Point[], occupied: Set<string>): boolean {
   return true;
 }
 
+function getEnemyPersonality(index: number): EnemyPersonality {
+  return ENEMY_PERSONALITIES[index % ENEMY_PERSONALITIES.length];
+}
+
 function spawnEnemyByIndex(index: number, occupied: Set<string>, seed?: number): EnemySnake | null {
   const templates: Array<{ head: Point; direction: Direction; hue: number }> = [
     { head: { x: BOARD_WIDTH - 6, y: 5 }, direction: "left", hue: 210 },
@@ -137,7 +252,8 @@ function spawnEnemyByIndex(index: number, occupied: Set<string>, seed?: number):
       snake: templatedBody,
       direction: template.direction,
       alive: true,
-      hue: template.hue
+      hue: template.hue,
+      personality: getEnemyPersonality(index)
     };
   }
 
@@ -155,7 +271,8 @@ function spawnEnemyByIndex(index: number, occupied: Set<string>, seed?: number):
         snake: body,
         direction,
         alive: true,
-        hue: (200 + index * 70) % 360
+        hue: (200 + index * 70) % 360,
+        personality: getEnemyPersonality(index)
       };
     }
   }
@@ -217,22 +334,34 @@ function refillFoodAt(
   return nextFoods;
 }
 
-function nearestFoodDistance(point: Point, foods: Point[]): number {
+function nearestDistance(point: Point, targets: Point[]): number {
   let best = Infinity;
-  for (const food of foods) {
-    const distance = Math.abs(food.x - point.x) + Math.abs(food.y - point.y);
+  for (const target of targets) {
+    const distance = Math.abs(target.x - point.x) + Math.abs(target.y - point.y);
     if (distance < best) best = distance;
   }
   return best;
 }
 
+function openNeighborCount(point: Point, occupied: Set<string>): number {
+  let free = 0;
+  (Object.keys(DIRECTION_VECTORS) as Direction[]).forEach((direction) => {
+    const neighbor = movePoint(point, direction);
+    if (!outOfBounds(neighbor) && !occupied.has(pointToKey(neighbor))) free += 1;
+  });
+  return free;
+}
+
 function chooseEnemyDirection(
   enemy: EnemySnake,
   foods: Point[],
-  occupiedByPlayer: Set<string>,
-  occupiedByOtherEnemies: Set<string>
+  playerSnake: Point[],
+  occupiedByOtherEnemies: Set<string>,
+  obstacleSet: Set<string>
 ): Direction {
   const head = enemy.snake[0];
+  const playerHead = playerSnake[0];
+  const playerOccupied = new Set(playerSnake.map(pointToKey));
   const priority: Direction[] = [
     enemy.direction,
     TURN_LEFT[enemy.direction],
@@ -250,13 +379,37 @@ function chooseEnemyDirection(
     const ownSet = new Set<string>(ownBody.map(pointToKey));
     const blocked =
       outOfBounds(nextHead) ||
-      occupiedByPlayer.has(pointToKey(nextHead)) ||
+      obstacleSet.has(pointToKey(nextHead)) ||
+      playerOccupied.has(pointToKey(nextHead)) ||
       occupiedByOtherEnemies.has(pointToKey(nextHead)) ||
       ownSet.has(pointToKey(nextHead));
 
     if (blocked) continue;
 
-    const score = nearestFoodDistance(nextHead, foods);
+    const totalOccupied = new Set<string>(playerOccupied);
+    addPoints(totalOccupied, foods);
+    addPoints(totalOccupied, enemy.snake);
+    for (const key of occupiedByOtherEnemies) totalOccupied.add(key);
+    for (const key of obstacleSet) totalOccupied.add(key);
+
+    const foodDistance = nearestDistance(nextHead, foods);
+    const playerDistance = Math.abs(nextHead.x - playerHead.x) + Math.abs(nextHead.y - playerHead.y);
+    const freeNeighbors = openNeighborCount(nextHead, totalOccupied);
+    const edgeDistance = Math.min(
+      nextHead.x,
+      BOARD_WIDTH - 1 - nextHead.x,
+      nextHead.y,
+      BOARD_HEIGHT - 1 - nextHead.y
+    );
+
+    let score = foodDistance;
+    if (enemy.personality === "hunter") {
+      score = playerDistance * 1.1 + foodDistance * 0.55 - freeNeighbors * 0.3;
+    }
+    if (enemy.personality === "careful") {
+      score = foodDistance * 0.9 - freeNeighbors * 1.45 - edgeDistance * 0.4;
+    }
+
     if (score < bestScore) {
       bestScore = score;
       bestDirection = direction;
@@ -264,6 +417,46 @@ function chooseEnemyDirection(
   }
 
   return bestDirection;
+}
+
+function shouldEnemyAdvance(enemy: EnemySnake, now: number): boolean {
+  const cadence = ENEMY_MOVE_CADENCE[enemy.personality];
+  if (cadence <= 1) return true;
+  return Math.floor(now / INITIAL_TICK_MS) % cadence !== 0;
+}
+
+function normalizeCombo(state: GameState, now: number): Pick<GameState, "comboCount" | "comboMultiplier" | "comboExpiresAt"> {
+  if (!state.comboExpiresAt || now <= state.comboExpiresAt) {
+    return {
+      comboCount: state.comboCount,
+      comboMultiplier: state.comboCount > 0 ? state.comboMultiplier : 1,
+      comboExpiresAt: state.comboExpiresAt
+    };
+  }
+  return {
+    comboCount: 0,
+    comboMultiplier: 1,
+    comboExpiresAt: null
+  };
+}
+
+function getComboMultiplier(comboCount: number): number {
+  return Math.min(MAX_COMBO_MULTIPLIER, Math.max(1, comboCount));
+}
+
+function applyAdventureProgress(state: GameState, score: number): Pick<GameState, "currentLevel" | "levelGoal" | "obstacles"> {
+  return createLevelState(state.mode, score);
+}
+
+function syncFoodsToBoard(state: GameState, seed?: number): Point[] {
+  const occupied = createOccupiedBase(state);
+  return fillFoods(state.foods, state.foodCount, occupied, seed);
+}
+
+function withBoardState(state: GameState, updates: Partial<GameState>, seed?: number): GameState {
+  const merged = { ...state, ...updates };
+  const foods = syncFoodsToBoard(merged, seed);
+  return { ...merged, foods };
 }
 
 export function createInitialState(seed?: number): GameState {
@@ -274,7 +467,10 @@ export function createInitialState(seed?: number): GameState {
     y: midY
   }));
 
+  const mode: GameMode = "endless";
+  const levelState = createLevelState(mode, 0);
   const playerOccupied = new Set<string>(snake.map(pointToKey));
+  addPoints(playerOccupied, levelState.obstacles);
   const enemyCount = DEFAULT_ENEMY_COUNT;
   const foodCount = DEFAULT_FOOD_COUNT;
   const enemies = spawnEnemies(enemyCount, playerOccupied, seed);
@@ -290,11 +486,18 @@ export function createInitialState(seed?: number): GameState {
     foods,
     foodCount,
     enemyCount,
+    mode,
+    currentLevel: levelState.currentLevel,
+    levelGoal: levelState.levelGoal,
+    obstacles: levelState.obstacles,
     powerUp: null,
     effects: {
       shield: false
     },
     score: 0,
+    comboCount: 0,
+    comboMultiplier: 1,
+    comboExpiresAt: null,
     bestScore: 0,
     gamesPlayed: 0,
     tickMs: INITIAL_TICK_MS,
@@ -317,41 +520,62 @@ export function togglePause(state: GameState): GameState {
 
 export function setFoodCount(state: GameState, nextCount: number, seed?: number): GameState {
   const foodCount = clamp(nextCount, MIN_FOOD_COUNT, MAX_FOOD_COUNT);
-  const occupied = new Set<string>(state.snake.map(pointToKey));
-  addPoints(occupied, state.enemies.filter((enemy) => enemy.alive).flatMap((enemy) => enemy.snake));
-  if (state.powerUp) occupied.add(pointToKey(state.powerUp.position));
-  const foods = fillFoods(state.foods, foodCount, occupied, seed);
-  return { ...state, foodCount, foods };
+  return withBoardState(state, { foodCount }, seed);
 }
 
 export function setEnemyCount(state: GameState, nextCount: number, seed?: number): GameState {
   const enemyCount = clamp(nextCount, MIN_ENEMY_COUNT, MAX_ENEMY_COUNT);
   const current = state.enemies.filter((enemy) => enemy.alive).slice(0, enemyCount);
   const occupied = new Set<string>(state.snake.map(pointToKey));
+  addPoints(occupied, state.obstacles);
   addPoints(occupied, current.flatMap((enemy) => enemy.snake));
   const missing = enemyCount - current.length;
   const extra = missing > 0 ? spawnEnemies(missing, occupied, seed) : [];
   const merged = [...current, ...extra].map((enemy, index) => ({
     ...enemy,
-    id: `enemy-${index + 1}`
+    id: `enemy-${index + 1}`,
+    hue: enemy.hue,
+    personality: getEnemyPersonality(index)
   }));
 
-  const occupiedForFoods = new Set<string>(state.snake.map(pointToKey));
-  addPoints(occupiedForFoods, merged.flatMap((enemy) => enemy.snake));
-  if (state.powerUp) occupiedForFoods.add(pointToKey(state.powerUp.position));
-  const foods = fillFoods(state.foods, state.foodCount, occupiedForFoods, seed);
+  return withBoardState(
+    state,
+    {
+      enemyCount,
+      enemies: merged
+    },
+    seed
+  );
+}
 
-  return {
+export function setGameMode(state: GameState, mode: GameMode, seed?: number): GameState {
+  if (state.mode === mode) return state;
+  const levelState = createLevelState(mode, state.score);
+  const safeObstacles = sanitizeObstacles(levelState.obstacles, [
+    ...state.snake,
+    ...state.foods,
+    ...state.enemies.flatMap((enemy) => enemy.snake),
+    ...(state.powerUp ? [state.powerUp.position] : [])
+  ]);
+  const occupied = new Set<string>(state.snake.map(pointToKey));
+  addPoints(occupied, safeObstacles);
+  const enemies = spawnEnemies(state.enemyCount, occupied, seed);
+  const next = {
     ...state,
-    enemyCount,
-    enemies: merged,
-    foods
+    mode,
+    currentLevel: levelState.currentLevel,
+    levelGoal: levelState.levelGoal,
+    obstacles: safeObstacles,
+    enemies,
+    powerUp: null
   };
+  return withBoardState(next, {}, seed);
 }
 
 export function restart(state: GameState, seed?: number): GameState {
   const fresh = createInitialState(seed);
-  const withFoodSetting = setFoodCount(fresh, state.foodCount, seed);
+  const withMode = setGameMode(fresh, state.mode, seed);
+  const withFoodSetting = setFoodCount(withMode, state.foodCount, seed);
   const withEnemySetting = setEnemyCount(withFoodSetting, state.enemyCount, seed);
   return {
     ...withEnemySetting,
@@ -363,6 +587,7 @@ export function restart(state: GameState, seed?: number): GameState {
 export function step(state: GameState, now: number): GameState {
   if (state.isGameOver || state.isPaused) return state;
 
+  const comboState = normalizeCombo(state, now);
   const effects = cleanupExpiredEffects(state.effects, now);
   const moveDirection = state.queuedDirection ?? state.direction;
   const currentHead = state.snake[0];
@@ -370,6 +595,7 @@ export function step(state: GameState, now: number): GameState {
   const initialNextHead = movePoint(currentHead, moveDirection);
   const nextHead = ghostWallOn ? wrapPoint(initialNextHead) : initialNextHead;
   const hitWall = outOfBounds(initialNextHead) && !ghostWallOn;
+  const obstacleSet = createObstacleSet(state.obstacles);
 
   const enemyOccupied = collectEnemyOccupied(state.enemies);
   const eatenFoodIndex = state.foods.findIndex((food) => samePoint(nextHead, food));
@@ -377,36 +603,45 @@ export function step(state: GameState, now: number): GameState {
   const futureBody = isEating ? state.snake : state.snake.slice(0, -1);
   const hitSelf = futureBody.some((segment) => samePoint(segment, nextHead));
   const hitEnemy = enemyOccupied.has(pointToKey(nextHead));
-  const fatalCollision = hitWall || hitSelf || hitEnemy;
+  const hitObstacle = obstacleSet.has(pointToKey(nextHead));
+  const fatalCollision = hitWall || hitSelf || hitEnemy || hitObstacle;
 
   if (fatalCollision) {
     if (effects.shield) {
       return {
         ...state,
+        ...comboState,
         direction: moveDirection,
         queuedDirection: null,
         effects: { ...effects, shield: false },
-        tickMs: computeTickMs({ ...state, effects }, now)
+        tickMs: computeTickMs({ ...state, ...comboState, effects }, now)
       };
     }
     return {
       ...state,
+      ...comboState,
       direction: moveDirection,
       queuedDirection: null,
       effects,
       isGameOver: true,
       isPaused: true,
-      tickMs: computeTickMs({ ...state, effects }, now)
+      tickMs: computeTickMs({ ...state, ...comboState, effects }, now)
     };
   }
 
   let nextSnake = [nextHead, ...state.snake];
   let nextScore = state.score;
   let nextFoods = [...state.foods];
+  let nextComboCount = comboState.comboCount;
+  let nextComboMultiplier = comboState.comboMultiplier;
+  let nextComboExpiresAt = comboState.comboExpiresAt;
 
   if (isEating) {
-    const doubled = isEffectActive(effects.doubleScoreUntil, now);
-    nextScore += doubled ? 2 : 1;
+    nextComboCount = comboState.comboCount > 0 ? comboState.comboCount + 1 : 1;
+    nextComboMultiplier = getComboMultiplier(nextComboCount);
+    nextComboExpiresAt = now + COMBO_WINDOW_MS;
+    const doubled = isEffectActive(effects.doubleScoreUntil, now) ? 2 : 1;
+    nextScore += doubled * nextComboMultiplier;
   } else {
     nextSnake.pop();
   }
@@ -424,20 +659,34 @@ export function step(state: GameState, now: number): GameState {
     nextPowerUp = null;
   }
 
+  const adventureState = applyAdventureProgress(state, nextScore);
+  const safeObstacles = sanitizeObstacles(adventureState.obstacles, [
+    ...nextSnake,
+    ...nextFoods,
+    ...state.enemies.flatMap((enemy) => enemy.snake),
+    ...(nextPowerUp ? [nextPowerUp.position] : [])
+  ]);
+  const safeObstacleSet = createObstacleSet(safeObstacles);
+  const playerOccupied = new Set<string>(nextSnake.map(pointToKey));
+  addPoints(playerOccupied, safeObstacles);
+
   if (isEating) {
-    const occupied = new Set<string>(nextSnake.map(pointToKey));
-    addPoints(occupied, state.enemies.filter((enemy) => enemy.alive).flatMap((enemy) => enemy.snake));
-    if (nextPowerUp) occupied.add(pointToKey(nextPowerUp.position));
-    nextFoods = refillFoodAt(nextFoods, eatenFoodIndex, occupied, now + 10);
+    addPoints(playerOccupied, state.enemies.filter((enemy) => enemy.alive).flatMap((enemy) => enemy.snake));
+    if (nextPowerUp) playerOccupied.add(pointToKey(nextPowerUp.position));
+    nextFoods = refillFoodAt(nextFoods, eatenFoodIndex, playerOccupied, now + 10);
   }
 
-  const playerOccupied = new Set<string>(nextSnake.map(pointToKey));
   const movedEnemies: EnemySnake[] = [];
   for (let index = 0; index < state.enemies.length; index += 1) {
     const enemy = state.enemies[index];
     if (!enemy.alive) continue;
+    if (!shouldEnemyAdvance(enemy, now + index)) {
+      movedEnemies.push(enemy);
+      continue;
+    }
 
     const otherEnemies = new Set<string>();
+    addPoints(otherEnemies, safeObstacles);
     for (let j = 0; j < state.enemies.length; j += 1) {
       if (j === index) continue;
       const other = state.enemies[j];
@@ -445,7 +694,13 @@ export function step(state: GameState, now: number): GameState {
     }
     addPoints(otherEnemies, movedEnemies.flatMap((item) => item.snake));
 
-    const direction = chooseEnemyDirection(enemy, nextFoods, playerOccupied, otherEnemies);
+    const direction = chooseEnemyDirection(
+      enemy,
+      nextFoods,
+      nextSnake,
+      otherEnemies,
+      safeObstacleSet
+    );
     const enemyNextHead = movePoint(enemy.snake[0], direction);
     const enemyFoodIndex = nextFoods.findIndex((food) => samePoint(food, enemyNextHead));
     const enemyWillEat = enemyFoodIndex >= 0;
@@ -453,6 +708,7 @@ export function step(state: GameState, now: number): GameState {
     const ownSet = new Set<string>(ownBody.map(pointToKey));
     const enemyBlocked =
       outOfBounds(enemyNextHead) ||
+      safeObstacleSet.has(pointToKey(enemyNextHead)) ||
       playerOccupied.has(pointToKey(enemyNextHead)) ||
       otherEnemies.has(pointToKey(enemyNextHead)) ||
       ownSet.has(pointToKey(enemyNextHead));
@@ -495,6 +751,7 @@ export function step(state: GameState, now: number): GameState {
   if (!nextPowerUp && chance(POWERUP_SPAWN_CHANCE)) {
     const occupied = new Set<string>(nextSnake.map(pointToKey));
     addPoints(occupied, movedEnemies.flatMap((enemy) => enemy.snake));
+    addPoints(occupied, safeObstacles);
     for (const food of nextFoods) occupied.add(pointToKey(food));
     const position = randomEmptyCell(BOARD_WIDTH, BOARD_HEIGHT, occupied);
     if (position) {
@@ -517,11 +774,18 @@ export function step(state: GameState, now: number): GameState {
     powerUp: nextPowerUp,
     foods: nextFoods,
     score: nextScore,
-    bestScore: nextBestScore
+    comboCount: nextComboCount,
+    comboMultiplier: nextComboMultiplier,
+    comboExpiresAt: nextComboExpiresAt,
+    bestScore: nextBestScore,
+    currentLevel: adventureState.currentLevel,
+    levelGoal: adventureState.levelGoal,
+    obstacles: safeObstacles
   };
 
+  const normalized = withBoardState(interim, {}, now + 100);
   return {
-    ...interim,
-    tickMs: computeTickMs(interim, now)
+    ...normalized,
+    tickMs: computeTickMs(normalized, now)
   };
 }

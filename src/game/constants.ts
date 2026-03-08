@@ -17,9 +17,13 @@ export const INITIAL_TICK_MS = 150;
 export const SCORE_PER_SPEED_STEP = 5;
 export const SPEED_STEP_MS = 5;
 export const MIN_BASE_TICK_MS = 75;
+export const COMBO_WINDOW_MS = 3_500;
+export const MAX_COMBO_MULTIPLIER = 5;
 
 export const POWERUP_SPAWN_CHANCE = 0.08;
 export const POWERUP_TTL_MS = 8_000;
+
+export const ADVENTURE_LEVEL_GOALS = [12, 28, 48, 72];
 
 export const POWERUP_WEIGHTS: Record<PowerUpType, number> = {
   SPEED_UP: 20,

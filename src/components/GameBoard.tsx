@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { BOARD_HEIGHT, BOARD_WIDTH } from "../game/constants";
 import { pointToKey } from "../game/random";
-import type { GameState, PowerUpType } from "../game/types";
+import type { EnemyPersonality, GameState, PowerUpType } from "../game/types";
 
 const POWERUP_LABEL: Record<PowerUpType, string> = {
   SPEED_UP: "S+",
@@ -10,6 +10,12 @@ const POWERUP_LABEL: Record<PowerUpType, string> = {
   DOUBLE_SCORE: "2X",
   SHORTEN: "SH",
   SHIELD: "SD"
+};
+
+const PERSONALITY_LABEL: Record<EnemyPersonality, string> = {
+  greedy: "G",
+  hunter: "H",
+  careful: "C"
 };
 
 interface Props {
@@ -32,6 +38,7 @@ export function GameBoard({ state, bursts }: Props) {
     });
   });
   const foodKeys = new Set(state.foods.map(pointToKey));
+  const obstacleKeys = new Set(state.obstacles.map(pointToKey));
   const powerUpKey = state.powerUp ? pointToKey(state.powerUp.position) : null;
   const cells = Array.from({ length: BOARD_WIDTH * BOARD_HEIGHT }, (_, i) => ({
     x: i % BOARD_WIDTH,
@@ -62,6 +69,9 @@ export function GameBoard({ state, bursts }: Props) {
             const enemy = state.enemies[enemyInfo.enemyIdx];
             className += enemyInfo.segmentIdx === 0 ? " enemy enemy-head" : " enemy";
             style["--enemy-hue"] = `${(enemy.hue + enemyInfo.segmentIdx * 10) % 360}`;
+            if (enemyInfo.segmentIdx === 0) content = PERSONALITY_LABEL[enemy.personality];
+          } else if (obstacleKeys.has(key)) {
+            className += " obstacle";
           } else if (isFood) {
             className += " food";
           } else if (isPowerUp && state.powerUp) {

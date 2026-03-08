@@ -2,12 +2,20 @@ import { describe, expect, it, vi } from "vitest";
 import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
+  COMBO_WINDOW_MS,
   DEFAULT_ENEMY_COUNT,
   DEFAULT_FOOD_COUNT,
   INITIAL_TICK_MS,
   MIN_BASE_TICK_MS
 } from "./constants";
-import { createInitialState, setEnemyCount, setFoodCount, step, turn } from "./engine";
+import {
+  createInitialState,
+  setEnemyCount,
+  setFoodCount,
+  setGameMode,
+  step,
+  turn
+} from "./engine";
 import type { GameState } from "./types";
 
 function runningState(base = createInitialState()): GameState {
@@ -24,6 +32,8 @@ describe("engine", () => {
     expect(state.powerUp).toBeNull();
     expect(state.foods).toHaveLength(DEFAULT_FOOD_COUNT);
     expect(state.enemies).toHaveLength(DEFAULT_ENEMY_COUNT);
+    expect(state.comboMultiplier).toBe(1);
+    expect(state.mode).toBe("endless");
   });
 
   it("blocks immediate reverse direction", () => {
@@ -47,6 +57,47 @@ describe("engine", () => {
     );
     expect(next.score).toBe(1);
     expect(next.snake.length).toBe(state.snake.length + 1);
+    vi.restoreAllMocks();
+  });
+
+  it("builds combo multiplier when foods are chained quickly", () => {
+    vi.spyOn(Math, "random").mockImplementation(() => 0.9);
+    const state = runningState(createInitialState());
+    const head = state.snake[0];
+    const first = step(
+      {
+        ...state,
+        foods: [{ x: head.x + 1, y: head.y }, ...state.foods.slice(1)]
+      },
+      1000
+    );
+    const secondHead = first.snake[0];
+    const second = step(
+      {
+        ...first,
+        foods: [{ x: secondHead.x + 1, y: secondHead.y }, ...first.foods.slice(1)]
+      },
+      1000 + COMBO_WINDOW_MS - 50
+    );
+
+    expect(first.comboMultiplier).toBe(1);
+    expect(second.comboMultiplier).toBe(2);
+    expect(second.score).toBe(3);
+    vi.restoreAllMocks();
+  });
+
+  it("resets combo after the combo window expires", () => {
+    vi.spyOn(Math, "random").mockImplementation(() => 0.9);
+    const first = runningState({
+      ...createInitialState(),
+      comboCount: 3,
+      comboMultiplier: 3,
+      comboExpiresAt: 1000
+    });
+    const next = step(first, 1000 + COMBO_WINDOW_MS + 1);
+    expect(next.comboCount).toBe(0);
+    expect(next.comboMultiplier).toBe(1);
+    expect(next.comboExpiresAt).toBeNull();
     vi.restoreAllMocks();
   });
 
@@ -234,5 +285,45 @@ describe("engine", () => {
     const triple = setEnemyCount(state, 3);
     expect(triple.enemyCount).toBe(3);
     expect(triple.enemies.filter((enemy) => enemy.alive).length).toBe(3);
+    expect(new Set(triple.enemies.map((enemy) => enemy.personality)).size).toBe(3);
+  });
+
+  it("enables adventure mode with obstacle maps", () => {
+    const state = setGameMode(createInitialState(), "adventure", 1);
+    expect(state.mode).toBe("adventure");
+    expect(state.obstacles.length).toBeGreaterThan(0);
+    expect(state.currentLevel).toBe(1);
+  });
+
+  it("progresses adventure levels as score grows", () => {
+    vi.spyOn(Math, "random").mockImplementation(() => 0.9);
+    const base = setGameMode(createInitialState(), "adventure", 1);
+    const state = runningState({
+      ...base,
+      score: 11,
+      foods: [{ x: base.snake[0].x + 1, y: base.snake[0].y }, ...base.foods.slice(1)]
+    });
+    const next = step(state, 1000);
+    expect(next.currentLevel).toBe(2);
+    expect(next.obstacles.length).toBeGreaterThan(0);
+    vi.restoreAllMocks();
+  });
+
+  it("treats obstacles as fatal collisions", () => {
+    vi.spyOn(Math, "random").mockImplementation(() => 0.9);
+    const state = runningState({
+      ...createInitialState(),
+      obstacles: [{ x: 17, y: 16 }],
+      snake: [
+        { x: 16, y: 16 },
+        { x: 15, y: 16 },
+        { x: 14, y: 16 },
+        { x: 13, y: 16 }
+      ],
+      direction: "right"
+    });
+    const next = step(state, 1000);
+    expect(next.isGameOver).toBe(true);
+    vi.restoreAllMocks();
   });
 });
