@@ -34,6 +34,7 @@ describe("engine", () => {
     expect(state.enemies).toHaveLength(DEFAULT_ENEMY_COUNT);
     expect(state.comboMultiplier).toBe(1);
     expect(state.mode).toBe("endless");
+    expect(state.relics).toEqual([]);
   });
 
   it("blocks immediate reverse direction", () => {
@@ -324,6 +325,40 @@ describe("engine", () => {
     });
     const next = step(state, 1000);
     expect(next.isGameOver).toBe(true);
+    vi.restoreAllMocks();
+  });
+
+  it("applies onFood relic bonus score", () => {
+    vi.spyOn(Math, "random").mockImplementation(() => 0.9);
+    const base = runningState(createInitialState());
+    const head = base.snake[0];
+    const state = {
+      ...base,
+      relics: ["HONEY_FANG"] as GameState["relics"],
+      foods: [{ x: head.x + 1, y: head.y }, ...base.foods.slice(1)]
+    };
+    const next = step(state, 2000);
+    expect(next.score).toBe(2);
+    vi.restoreAllMocks();
+  });
+
+  it("consumes guardian shell relic on fatal hit", () => {
+    vi.spyOn(Math, "random").mockImplementation(() => 0.9);
+    const state = runningState({
+      ...createInitialState(),
+      relics: ["GUARDIAN_SHELL"] as GameState["relics"],
+      effects: { shield: false },
+      snake: [
+        { x: BOARD_WIDTH - 1, y: 5 },
+        { x: BOARD_WIDTH - 2, y: 5 },
+        { x: BOARD_WIDTH - 3, y: 5 },
+        { x: BOARD_WIDTH - 4, y: 5 }
+      ],
+      direction: "right"
+    });
+    const next = step(state, 3000);
+    expect(next.isGameOver).toBe(false);
+    expect(next.relics).toHaveLength(0);
     vi.restoreAllMocks();
   });
 });

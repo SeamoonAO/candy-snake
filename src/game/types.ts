@@ -14,6 +14,8 @@ export type PowerUpType =
   | "SHORTEN"
   | "SHIELD";
 
+export type RelicId = "HONEY_FANG" | "GUARDIAN_SHELL" | "WAYFINDER_SIGIL" | "CALM_FEATHER";
+
 export interface PowerUpInstance {
   type: PowerUpType;
   position: Point;
@@ -50,6 +52,7 @@ export interface GameState {
   levelGoal: number;
   obstacles: Point[];
   powerUp: PowerUpInstance | null;
+  relics: RelicId[];
   effects: ActiveEffects;
   score: number;
   comboCount: number;

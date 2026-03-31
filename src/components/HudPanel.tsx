@@ -1,4 +1,6 @@
+import { getRelicDefinition } from "../game/relics";
 import type { GameMode } from "../game/types";
+import type { RelicId } from "../game/types";
 
 interface ActiveTimers {
   speedUp: number;
@@ -24,6 +26,7 @@ interface Props {
   comboCount: number;
   comboMultiplier: number;
   activeTimers: ActiveTimers;
+  relics: RelicId[];
   onFoodCountChange: (count: number) => void;
   onEnemyCountChange: (count: number) => void;
   onModeChange: (mode: GameMode) => void;
@@ -51,6 +54,7 @@ export function HudPanel({
   comboCount,
   comboMultiplier,
   activeTimers,
+  relics,
   onFoodCountChange,
   onEnemyCountChange,
   onModeChange,
@@ -144,6 +148,21 @@ export function HudPanel({
             activeTimers.slowDown <= 0 &&
             activeTimers.ghostWall <= 0 &&
             activeTimers.doubleScore <= 0 && <span className="effect-empty">No active effects</span>}
+        </div>
+      </div>
+
+      <div className="effects">
+        <h2>Relics</h2>
+        <div className="effect-list">
+          {relics.map((id) => {
+            const relic = getRelicDefinition(id);
+            return (
+              <span key={id} className="effect-pill relic" title={`${relic.name}: ${relic.description}`}>
+                {relic.icon}
+              </span>
+            );
+          })}
+          {relics.length === 0 && <span className="effect-empty">No relics collected</span>}
         </div>
       </div>
 

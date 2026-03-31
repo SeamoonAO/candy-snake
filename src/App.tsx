@@ -35,6 +35,7 @@ export default function App() {
         comboCount={state.comboCount}
         comboMultiplier={state.comboMultiplier}
         activeTimers={activeTimers}
+        relics={state.relics}
         onFoodCountChange={updateFoodCount}
         onEnemyCountChange={updateEnemyCount}
         onModeChange={updateGameMode}
