@@ -235,6 +235,11 @@ body {
   background: #dcfef4;
 }
 
+.effect-pill.relic {
+  background: #efe7ff;
+  letter-spacing: 0.02em;
+}
+
 .effect-empty {
   color: #7d8699;
   font-size: 0.82rem;

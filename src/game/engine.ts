@@ -20,6 +20,7 @@ import {
   SPEED_STEP_MS
 } from "./constants";
 import { applyPowerUp, choosePowerUpType, cleanupExpiredEffects, isEffectActive } from "./powerups";
+import { runNodeClearRelics, runRelicTriggers } from "./relics";
 import { chance, createRng, pointToKey, randomEmptyCell } from "./random";
 import type {
   Direction,
@@ -491,6 +492,7 @@ export function createInitialState(seed?: number): GameState {
     levelGoal: levelState.levelGoal,
     obstacles: levelState.obstacles,
     powerUp: null,
+    relics: [],
     effects: {
       shield: false
     },
@@ -589,9 +591,17 @@ export function step(state: GameState, now: number): GameState {
 
   const comboState = normalizeCombo(state, now);
   const effects = cleanupExpiredEffects(state.effects, now);
+  const stepRelics = runRelicTriggers(state.relics, "onStep", {
+    now,
+    score: state.score,
+    effects,
+    preventedHit: false
+  });
+  let nextRelics = stepRelics.relics;
+  let nextEffects = stepRelics.effects;
   const moveDirection = state.queuedDirection ?? state.direction;
   const currentHead = state.snake[0];
-  const ghostWallOn = isEffectActive(effects.ghostWallUntil, now);
+  const ghostWallOn = isEffectActive(nextEffects.ghostWallUntil, now);
   const initialNextHead = movePoint(currentHead, moveDirection);
   const nextHead = ghostWallOn ? wrapPoint(initialNextHead) : initialNextHead;
   const hitWall = outOfBounds(initialNextHead) && !ghostWallOn;
@@ -605,16 +615,30 @@ export function step(state: GameState, now: number): GameState {
   const hitEnemy = enemyOccupied.has(pointToKey(nextHead));
   const hitObstacle = obstacleSet.has(pointToKey(nextHead));
   const fatalCollision = hitWall || hitSelf || hitEnemy || hitObstacle;
+  const hitRelics = fatalCollision
+    ? runRelicTriggers(nextRelics, "onHit", {
+        now,
+        score: state.score,
+        effects: nextEffects,
+        preventedHit: false
+      })
+    : null;
+  if (hitRelics) {
+    nextRelics = hitRelics.relics;
+    nextEffects = hitRelics.effects;
+  }
+  const preventedByRelic = Boolean(hitRelics?.preventedHit);
 
-  if (fatalCollision) {
-    if (effects.shield) {
+  if (fatalCollision && !preventedByRelic) {
+    if (nextEffects.shield) {
       return {
         ...state,
         ...comboState,
         direction: moveDirection,
         queuedDirection: null,
-        effects: { ...effects, shield: false },
-        tickMs: computeTickMs({ ...state, ...comboState, effects }, now)
+        effects: { ...nextEffects, shield: false },
+        relics: nextRelics,
+        tickMs: computeTickMs({ ...state, ...comboState, effects: nextEffects }, now)
       };
     }
     return {
@@ -622,10 +646,11 @@ export function step(state: GameState, now: number): GameState {
       ...comboState,
       direction: moveDirection,
       queuedDirection: null,
-      effects,
+      effects: nextEffects,
+      relics: nextRelics,
       isGameOver: true,
       isPaused: true,
-      tickMs: computeTickMs({ ...state, ...comboState, effects }, now)
+      tickMs: computeTickMs({ ...state, ...comboState, effects: nextEffects }, now)
     };
   }
 
@@ -640,14 +665,13 @@ export function step(state: GameState, now: number): GameState {
     nextComboCount = comboState.comboCount > 0 ? comboState.comboCount + 1 : 1;
     nextComboMultiplier = getComboMultiplier(nextComboCount);
     nextComboExpiresAt = now + COMBO_WINDOW_MS;
-    const doubled = isEffectActive(effects.doubleScoreUntil, now) ? 2 : 1;
+    const doubled = isEffectActive(nextEffects.doubleScoreUntil, now) ? 2 : 1;
     nextScore += doubled * nextComboMultiplier;
   } else {
     nextSnake.pop();
   }
 
   let nextPowerUp = state.powerUp && state.powerUp.expiresAt > now ? state.powerUp : null;
-  let nextEffects = effects;
 
   if (nextPowerUp && samePoint(nextHead, nextPowerUp.position)) {
     const applied = applyPowerUp(nextEffects, nextPowerUp.type, now);
@@ -659,7 +683,32 @@ export function step(state: GameState, now: number): GameState {
     nextPowerUp = null;
   }
 
+  if (isEating) {
+    const foodRelics = runRelicTriggers(nextRelics, "onFood", {
+      now,
+      score: nextScore,
+      effects: nextEffects,
+      preventedHit: false
+    });
+    nextRelics = foodRelics.relics;
+    nextEffects = foodRelics.effects;
+    nextScore = foodRelics.score;
+  }
+
   const adventureState = applyAdventureProgress(state, nextScore);
+  const nodeRelics = runNodeClearRelics(
+    nextRelics,
+    {
+      now,
+      score: nextScore,
+      effects: nextEffects,
+      preventedHit: false
+    },
+    adventureState.currentLevel > state.currentLevel
+  );
+  nextRelics = nodeRelics.relics;
+  nextEffects = nodeRelics.effects;
+  nextScore = nodeRelics.score;
   const safeObstacles = sanitizeObstacles(adventureState.obstacles, [
     ...nextSnake,
     ...nextFoods,
@@ -771,6 +820,7 @@ export function step(state: GameState, now: number): GameState {
     direction: moveDirection,
     queuedDirection: null,
     effects: nextEffects,
+    relics: nextRelics,
     powerUp: nextPowerUp,
     foods: nextFoods,
     score: nextScore,
