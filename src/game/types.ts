@@ -73,6 +73,7 @@ export interface RogueliteRunState {
 export interface BuildModifiers {
   comboWindowBonusMs: number;
   dashDistanceBonus: number;
+  tickMsBonusMs: number;
   canSwallowShorterEnemies: boolean;
   hasPhaseScales: boolean;
 }

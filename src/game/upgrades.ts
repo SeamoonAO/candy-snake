@@ -298,7 +298,10 @@ const overclockedMetabolism = createUpgrade({
   eligible: alwaysEligible,
   apply: (state) => ({
     ...state,
-    tickMs: Math.max(40, state.tickMs - UPGRADE_RISK_TICK_BONUS_MS)
+    build: {
+      ...state.build,
+      tickMsBonusMs: state.build.tickMsBonusMs + UPGRADE_RISK_TICK_BONUS_MS
+    }
   })
 });
 

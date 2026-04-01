@@ -121,6 +121,7 @@ function computeTickMs(state: GameState, now: number): number {
     );
     if (state.run.collapseStarted) tick *= ADVENTURE_COLLAPSE_TICK_MULTIPLIER;
   }
+  tick -= state.build.tickMsBonusMs;
   return Math.max(40, Math.round(tick));
 }
 
@@ -244,6 +245,7 @@ function createBuildModifiers(): BuildModifiers {
   return {
     comboWindowBonusMs: 0,
     dashDistanceBonus: 0,
+    tickMsBonusMs: 0,
     canSwallowShorterEnemies: false,
     hasPhaseScales: false
   };
@@ -626,6 +628,10 @@ function syncAdventureBoardState(state: GameState, now: number): GameState {
   if (state.mode !== "adventure") return state;
 
   const profile = getAdventurePressureProfile(state.run);
+  const desiredEnemyCount = clamp(state.enemyCount, MIN_ENEMY_COUNT, MAX_ENEMY_COUNT);
+  const desiredEnemyProfile = Array.from({ length: desiredEnemyCount }, (_, index) => {
+    return profile.enemyProfile[index % profile.enemyProfile.length] ?? getEnemyPersonality(index);
+  });
   const safeObstacles = sanitizeObstacles(profile.obstacleTheme, [
     ...state.snake,
     ...state.foods,
@@ -635,10 +641,10 @@ function syncAdventureBoardState(state: GameState, now: number): GameState {
   const occupied = new Set<string>(state.snake.map(pointToKey));
   addPoints(occupied, safeObstacles);
 
-  const currentEnemies = state.enemies.filter((enemy) => enemy.alive).slice(0, profile.enemyProfile.length);
+  const currentEnemies = state.enemies.filter((enemy) => enemy.alive).slice(0, desiredEnemyCount);
   addPoints(occupied, currentEnemies.flatMap((enemy) => enemy.snake));
 
-  const missing = profile.enemyProfile.length - currentEnemies.length;
+  const missing = desiredEnemyCount - currentEnemies.length;
   const extraEnemies: EnemySnake[] = [];
   for (let index = 0; index < missing; index += 1) {
     const extra = spawnEnemyByIndex(
@@ -649,10 +655,10 @@ function syncAdventureBoardState(state: GameState, now: number): GameState {
     if (!extra) continue;
     extraEnemies.push(extra);
   }
-  const enemies = [...currentEnemies, ...extraEnemies].slice(0, profile.enemyProfile.length).map((enemy, index) => ({
+  const enemies = [...currentEnemies, ...extraEnemies].slice(0, desiredEnemyCount).map((enemy, index) => ({
     ...enemy,
     id: `enemy-${index + 1}`,
-    personality: profile.enemyProfile[index] ?? getEnemyPersonality(index)
+    personality: desiredEnemyProfile[index] ?? getEnemyPersonality(index)
   }));
 
   const normalized = withBoardState(

@@ -9,6 +9,7 @@ import {
   MIN_BASE_TICK_MS
 } from "./constants";
 import {
+  chooseUpgrade,
   createInitialState,
   restart,
   setEnemyCount,
@@ -315,6 +316,14 @@ describe("engine", () => {
     expect(state.summary).toBeNull();
   });
 
+  it("preserves the configured enemy count when switching to adventure", () => {
+    const state = setEnemyCount(createInitialState(), 3);
+    const next = setGameMode(state, "adventure", 1);
+
+    expect(next.enemyCount).toBe(3);
+    expect(next.enemies.filter((enemy) => enemy.alive)).toHaveLength(3);
+  });
+
   it("opens an upgrade draft when an adventure segment ends without advancing the board", () => {
     vi.spyOn(Math, "random").mockImplementation(() => 0.9);
     const base = makeAdventureState();
@@ -366,6 +375,39 @@ describe("engine", () => {
     expect(next.summary?.chosenUpgradeIds).toContain("combo-window-up");
   });
 
+  it("keeps overclocked metabolism faster than a neutral upgrade after resuming adventure", () => {
+    vi.spyOn(Math, "random").mockImplementation(() => 0.9);
+    const base = makeAdventureState({
+      snake: [
+        { x: 16, y: 16 },
+        { x: 15, y: 16 },
+        { x: 14, y: 16 },
+        { x: 13, y: 16 }
+      ],
+      direction: "right",
+      foods: [{ x: 2, y: 2 }],
+      run: {
+        ...makeAdventureState().run,
+        phase: "draft",
+        upgradeDraft: {
+          offeredIds: ["overclocked-metabolism", "sugar-debt", "dash-line"],
+          source: "normal"
+        }
+      }
+    });
+
+    const overclocked = chooseUpgrade(base, "overclocked-metabolism", 1000);
+    const neutral = chooseUpgrade(base, "sugar-debt", 1000);
+
+    expect(overclocked.tickMs).toBeLessThan(neutral.tickMs);
+
+    const overclockedStep = step(overclocked, 1001);
+    const neutralStep = step(neutral, 1001);
+
+    expect(overclockedStep.tickMs).toBeLessThan(neutralStep.tickMs);
+    vi.restoreAllMocks();
+  });
+
   it("creates a non-zero run seed and preserves it through mode transitions and restart", () => {
     const initial = createInitialState();
     const seed = initial.run.seed;
@@ -403,6 +445,7 @@ describe("engine", () => {
       build: {
         comboWindowBonusMs: 200,
         dashDistanceBonus: 1,
+        tickMsBonusMs: 8,
         canSwallowShorterEnemies: true,
         hasPhaseScales: true
       },
@@ -440,6 +483,7 @@ describe("engine", () => {
     expect(next.build).toEqual({
       comboWindowBonusMs: 0,
       dashDistanceBonus: 0,
+      tickMsBonusMs: 0,
       canSwallowShorterEnemies: false,
       hasPhaseScales: false
     });
