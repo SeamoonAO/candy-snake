@@ -1,6 +1,7 @@
 import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
+import { HudPanel } from "./HudPanel";
 import { RunSummary } from "./RunSummary";
 import { UpgradeOverlay } from "./UpgradeOverlay";
 
@@ -82,6 +83,49 @@ describe("roguelite UI", () => {
     expect(view.container.textContent).toContain("Highest Combo");
     expect(view.container.textContent).toContain("42");
     expect(view.container.textContent).toContain("combo-window-up");
+
+    view.unmount();
+  });
+
+  it("shows adventure life tracking in the HUD", () => {
+    const view = render(
+      <HudPanel
+        score={12}
+        bestScore={30}
+        gamesPlayed={4}
+        tickMs={120}
+        isPaused={false}
+        isGameOver={false}
+        started={true}
+        foodCount={5}
+        enemyCount={2}
+        mode="adventure"
+        currentLevel={2}
+        levelGoal={3}
+        comboCount={2}
+        comboMultiplier={2}
+        activeTimers={{ speedUp: 0, slowDown: 0, ghostWall: 0, doubleScore: 0, shield: false }}
+        runPhase="segment"
+        segmentIndex={2}
+        eliteSegment={false}
+        collapseStarted={false}
+        lives={3}
+        maxLives={3}
+        hurtActive={false}
+        dashCharges={1}
+        dashMaxCharges={1}
+        dashCooldownRemainingMs={0}
+        recentBuild={[]}
+        onFoodCountChange={() => undefined}
+        onEnemyCountChange={() => undefined}
+        onModeChange={() => undefined}
+        onPauseToggle={() => undefined}
+        onRestart={() => undefined}
+      />
+    );
+
+    expect(view.container.textContent).toContain("Lives");
+    expect(view.container.textContent).toContain("3 / 3");
 
     view.unmount();
   });

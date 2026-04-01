@@ -1,4 +1,5 @@
 import {
+  ADVENTURE_MAX_LIVES,
   ADVENTURE_COLLAPSE_TICK_MULTIPLIER,
   ADVENTURE_LEVEL_TICK_STEP,
   ADVENTURE_LEVEL_GOALS,
@@ -14,6 +15,9 @@ import {
   DEFAULT_FOOD_COUNT,
   ELITE_SEGMENT_INTERVAL,
   ENEMY_INITIAL_LENGTH,
+  HURT_FLASH_MS,
+  HURT_INVULNERABLE_MS,
+  HURT_SHRINK_MAX,
   INITIAL_SNAKE_LENGTH,
   INITIAL_TICK_MS,
   MAX_COMBO_MULTIPLIER,
@@ -22,6 +26,7 @@ import {
   MIN_BASE_TICK_MS,
   MIN_ENEMY_COUNT,
   MIN_FOOD_COUNT,
+  MIN_SURVIVABLE_SNAKE_LENGTH,
   POWERUP_SPAWN_CHANCE,
   POWERUP_TTL_MS,
   SEGMENT_DURATION_MS,
@@ -263,21 +268,35 @@ function createActiveSkillState(): ActiveSkillState {
   };
 }
 
-function pruneTailHazards(state: GameState, now: number): GameState {
-  const tailHazards = state.tailHazards.filter((hazard) => hazard.expiresAt > now);
-  return tailHazards.length === state.tailHazards.length ? state : { ...state, tailHazards };
+function createLifeState(mode: GameMode): Pick<GameState, "lives" | "maxLives" | "hurtUntil"> {
+  const maxLives = mode === "adventure" ? ADVENTURE_MAX_LIVES : 1;
+  return {
+    lives: maxLives,
+    maxLives,
+    hurtUntil: null
+  };
 }
 
-function createRogueliteScaffolding(seed?: number): Pick<
+function pruneTailHazards(state: GameState, now: number): GameState {
+  const tailHazards = state.tailHazards.filter((hazard) => hazard.expiresAt > now);
+  const hurtUntil = state.hurtUntil !== null && now >= state.hurtUntil ? null : state.hurtUntil;
+  if (tailHazards.length === state.tailHazards.length && hurtUntil === state.hurtUntil) {
+    return state;
+  }
+  return { ...state, tailHazards, hurtUntil };
+}
+
+function createRogueliteScaffolding(seed?: number, mode: GameMode = "endless"): Pick<
   GameState,
-  "run" | "build" | "tailHazards" | "activeSkill" | "summary"
+  "run" | "build" | "tailHazards" | "activeSkill" | "summary" | "lives" | "maxLives" | "hurtUntil"
 > {
   return {
     run: createRunState(seed ?? 0),
     build: createBuildModifiers(),
     tailHazards: [],
     activeSkill: createActiveSkillState(),
-    summary: null
+    summary: null,
+    ...createLifeState(mode)
   };
 }
 
@@ -303,6 +322,51 @@ function createOccupiedBase(state: Pick<GameState, "snake" | "enemies" | "powerU
   addPoints(occupied, state.obstacles);
   if (state.powerUp) occupied.add(pointToKey(state.powerUp.position));
   return occupied;
+}
+
+function getHurtShrinkBy(length: number): number {
+  if (length <= MIN_SURVIVABLE_SNAKE_LENGTH) return 0;
+  return Math.min(HURT_SHRINK_MAX, length - MIN_SURVIVABLE_SNAKE_LENGTH);
+}
+
+function canRescueStep(
+  state: GameState,
+  head: Point,
+  direction: Direction,
+  snakeAfterShrink: Point[]
+): boolean {
+  const nextHead = movePoint(head, direction);
+  if (outOfBounds(nextHead)) return false;
+
+  const obstacleSet = createObstacleSet(state.obstacles);
+  if (obstacleSet.has(pointToKey(nextHead))) return false;
+
+  const enemyOccupied = collectEnemyOccupied(state.enemies);
+  if (enemyOccupied.has(pointToKey(nextHead))) return false;
+
+  const futureBody = snakeAfterShrink.slice(0, -1);
+  return !futureBody.some((segment) => samePoint(segment, nextHead));
+}
+
+function chooseRescueDirection(
+  state: GameState,
+  moveDirection: Direction,
+  snakeAfterShrink: Point[]
+): Direction | null {
+  const head = state.snake[0];
+  const candidates: Direction[] = [
+    TURN_LEFT[moveDirection],
+    TURN_RIGHT[moveDirection],
+    OPPOSITE[moveDirection]
+  ];
+
+  for (const direction of candidates) {
+    if (canRescueStep(state, head, direction, snakeAfterShrink)) {
+      return direction;
+    }
+  }
+
+  return null;
 }
 
 function spawnOneFood(occupied: Set<string>, seed?: number): Point | null {
@@ -707,7 +771,7 @@ export function createInitialState(seed?: number): GameState {
   const mode: GameMode = "endless";
   const runSeed = resolveRunSeed(seed);
   const levelState = createLevelState(mode, 0);
-  const roguelite = createRogueliteScaffolding(runSeed);
+  const roguelite = createRogueliteScaffolding(runSeed, mode);
   const playerOccupied = new Set<string>(snake.map(pointToKey));
   addPoints(playerOccupied, levelState.obstacles);
   const enemyCount = DEFAULT_ENEMY_COUNT;
@@ -791,7 +855,7 @@ export function setEnemyCount(state: GameState, nextCount: number, seed?: number
 export function setGameMode(state: GameState, mode: GameMode, seed?: number): GameState {
   if (state.mode === mode) return state;
   const runSeed = resolveRunSeed(seed, state.run.seed);
-  const roguelite = createRogueliteScaffolding(runSeed);
+  const roguelite = createRogueliteScaffolding(runSeed, mode);
 
   if (mode === "adventure") {
     return syncAdventureBoardState(
@@ -848,6 +912,48 @@ export function chooseUpgrade(state: GameState, upgradeId: string, now: number):
     },
     now
   );
+}
+
+function rescueAdventureCollision(
+  state: GameState,
+  moveDirection: Direction,
+  now: number,
+  comboState: Pick<GameState, "comboCount" | "comboMultiplier" | "comboExpiresAt">,
+  collisionRun: RogueliteRunState,
+  effects: GameState["effects"]
+): GameState | null {
+  if (state.mode !== "adventure" || state.lives <= 1) return null;
+
+  const shrinkBy = getHurtShrinkBy(state.snake.length);
+  if (shrinkBy <= 0) return null;
+
+  const rescuedSnake = state.snake.slice(0, state.snake.length - shrinkBy);
+  const rescueDirection =
+    chooseRescueDirection(state, moveDirection, rescuedSnake) ?? OPPOSITE[moveDirection];
+  const hurtUntil = now + HURT_FLASH_MS;
+  const activeSkill = {
+    ...state.activeSkill,
+    invulnerableUntil: Math.max(state.activeSkill.invulnerableUntil ?? 0, now + HURT_INVULNERABLE_MS)
+  };
+
+  const rescuedState: GameState = {
+    ...state,
+    ...comboState,
+    snake: rescuedSnake,
+    direction: rescueDirection,
+    queuedDirection: null,
+    effects,
+    run: collisionRun,
+    activeSkill,
+    lives: state.lives - 1,
+    hurtUntil,
+    comboCount: 0,
+    comboMultiplier: 1,
+    comboExpiresAt: null,
+    summary: null
+  };
+
+  return syncAdventureBoardState(rescuedState, now);
 }
 
 export function useActiveSkill(state: GameState, now: number): GameState {
@@ -947,6 +1053,10 @@ export function step(state: GameState, now: number): GameState {
         effects: { ...effects, shield: false },
         tickMs: computeTickMs({ ...state, ...comboState, effects, run: collisionRun }, now)
       };
+    }
+    const rescuedState = rescueAdventureCollision(state, moveDirection, now, comboState, collisionRun, effects);
+    if (rescuedState) {
+      return rescuedState;
     }
     const gameOverState: GameState = {
       ...state,

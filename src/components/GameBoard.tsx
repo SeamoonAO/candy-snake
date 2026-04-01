@@ -24,7 +24,7 @@ interface Props {
     id: string;
     x: number;
     y: number;
-    kind: "food" | "powerup";
+    kind: "food" | "powerup" | "hurt";
   }>;
 }
 
@@ -44,11 +44,12 @@ export function GameBoard({ state, bursts }: Props) {
     x: i % BOARD_WIDTH,
     y: Math.floor(i / BOARD_WIDTH)
   }));
+  const hurtActive = state.hurtUntil !== null && Date.now() < state.hurtUntil;
 
   return (
     <section className="board-shell" aria-label="Candy snake board">
       <div
-        className="game-board"
+        className={hurtActive ? "game-board hurt-board" : "game-board"}
         style={{ "--board-cols": BOARD_WIDTH, "--board-rows": BOARD_HEIGHT } as CSSProperties}
       >
         {cells.map((cell) => {
@@ -64,6 +65,7 @@ export function GameBoard({ state, bursts }: Props) {
 
           if (typeof snakeIndex === "number") {
             className += snakeIndex === 0 ? " snake head" : " snake";
+            if (hurtActive) className += " hurt";
             style["--snake-hue"] = `${(snakeIndex * 24 + 80) % 360}`;
           } else if (enemyInfo) {
             const enemy = state.enemies[enemyInfo.enemyIdx];

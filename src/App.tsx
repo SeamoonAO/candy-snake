@@ -50,6 +50,9 @@ export default function App() {
         segmentIndex={state.run.segmentIndex}
         eliteSegment={state.run.eliteSegment}
         collapseStarted={state.run.collapseStarted}
+        lives={state.lives}
+        maxLives={state.maxLives}
+        hurtActive={state.hurtUntil !== null}
         dashCharges={state.activeSkill.charges}
         dashMaxCharges={state.activeSkill.maxCharges}
         dashCooldownRemainingMs={dashCooldownRemainingMs}

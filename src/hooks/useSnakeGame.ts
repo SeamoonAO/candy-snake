@@ -20,7 +20,7 @@ interface BurstEffect {
   id: string;
   x: number;
   y: number;
-  kind: "food" | "powerup";
+  kind: "food" | "powerup" | "hurt";
   expiresAt: number;
 }
 
@@ -87,13 +87,19 @@ export function useSnakeGame() {
           !next.powerUp &&
           nextHead.x === prev.powerUp.position.x &&
           nextHead.y === prev.powerUp.position.y;
+        const tookDamage = next.lives < prev.lives;
 
-        if (consumedFood || consumedPowerup) {
-          const kind: BurstEffect["kind"] = consumedPowerup ? "powerup" : "food";
+        if (consumedFood || consumedPowerup || tookDamage) {
+          const kind: BurstEffect["kind"] = tookDamage
+            ? "hurt"
+            : consumedPowerup
+              ? "powerup"
+              : "food";
+          const burstOrigin = tookDamage ? prev.snake[0] : nextHead;
           const burst: BurstEffect = {
             id: `fx-${now}-${burstSerialRef.current}`,
-            x: nextHead.x,
-            y: nextHead.y,
+            x: burstOrigin.x,
+            y: burstOrigin.y,
             kind,
             expiresAt: now + 520
           };

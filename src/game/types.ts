@@ -114,6 +114,9 @@ export interface GameState {
   tailHazards: TailHazard[];
   activeSkill: ActiveSkillState;
   summary: RunSummary | null;
+  lives: number;
+  maxLives: number;
+  hurtUntil: number | null;
   bestScore: number;
   gamesPlayed: number;
   tickMs: number;

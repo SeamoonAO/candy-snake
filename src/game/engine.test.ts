@@ -45,6 +45,8 @@ describe("engine", () => {
     expect(state.enemies).toHaveLength(DEFAULT_ENEMY_COUNT);
     expect(state.comboMultiplier).toBe(1);
     expect(state.mode).toBe("endless");
+    expect(state.lives).toBe(1);
+    expect(state.maxLives).toBe(1);
   });
 
   it("blocks immediate reverse direction", () => {
@@ -315,6 +317,55 @@ describe("engine", () => {
     expect(state.activeSkill.type).toBe("dash");
     expect(state.activeSkill.charges).toBe(1);
     expect(state.summary).toBeNull();
+    expect(state.lives).toBe(3);
+    expect(state.maxLives).toBe(3);
+    expect(state.hurtUntil).toBeNull();
+  });
+
+  it("spends a life and rescues an adventure run before game over", () => {
+    const state = makeAdventureState({
+      snake: [
+        { x: 0, y: 8 },
+        { x: 1, y: 8 },
+        { x: 2, y: 8 },
+        { x: 3, y: 8 }
+      ],
+      direction: "left",
+      queuedDirection: null,
+      comboCount: 3,
+      comboMultiplier: 3,
+      comboExpiresAt: 2000
+    });
+
+    const next = step(state, 1000);
+
+    expect(next.isGameOver).toBe(false);
+    expect(next.lives).toBe(2);
+    expect(next.snake).toHaveLength(3);
+    expect(next.direction).not.toBe("left");
+    expect(next.comboCount).toBe(0);
+    expect(next.comboMultiplier).toBe(1);
+    expect(next.comboExpiresAt).toBeNull();
+    expect(next.hurtUntil).toBeGreaterThan(1000);
+    expect(next.activeSkill.invulnerableUntil).toBeGreaterThan(1000);
+  });
+
+  it("still dies on adventure collisions when the snake cannot shrink anymore", () => {
+    const state = makeAdventureState({
+      snake: [
+        { x: 0, y: 8 },
+        { x: 1, y: 8 },
+        { x: 2, y: 8 }
+      ],
+      direction: "left",
+      queuedDirection: null
+    });
+
+    const next = step(state, 1000);
+
+    expect(next.isGameOver).toBe(true);
+    expect(next.lives).toBe(3);
+    expect(next.summary).not.toBeNull();
   });
 
   it("keeps endless mode out of upgrade drafts even if run timing data is present", () => {
@@ -377,6 +428,7 @@ describe("engine", () => {
           chosenUpgradeIds: ["combo-window-up"],
           segmentIndex: 4
         },
+        lives: 1,
         snake: [
           { x: 31, y: 16 },
           { x: 30, y: 16 },

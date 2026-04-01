@@ -28,6 +28,9 @@ interface Props {
   segmentIndex: number;
   eliteSegment: boolean;
   collapseStarted: boolean;
+  lives: number;
+  maxLives: number;
+  hurtActive: boolean;
   dashCharges: number;
   dashMaxCharges: number;
   dashCooldownRemainingMs: number;
@@ -63,6 +66,9 @@ export function HudPanel({
   segmentIndex,
   eliteSegment,
   collapseStarted,
+  lives,
+  maxLives,
+  hurtActive,
   dashCharges,
   dashMaxCharges,
   dashCooldownRemainingMs,
@@ -141,6 +147,21 @@ export function HudPanel({
               <div className="run-stat">
                 <span>Source</span>
                 <strong>{segmentSource}</strong>
+              </div>
+            </div>
+            <div className={`life-card ${hurtActive ? "hurt" : ""}`}>
+              <div>
+                <span className="dash-label">Lives</span>
+                <strong>
+                  {lives} / {maxLives}
+                </strong>
+              </div>
+              <div className="life-pips" aria-label={`Lives ${lives} of ${maxLives}`}>
+                {Array.from({ length: maxLives }, (_, index) => (
+                  <span key={index} className={index < lives ? "life-pip full" : "life-pip empty"}>
+                    {index < lives ? "❤" : "·"}
+                  </span>
+                ))}
               </div>
             </div>
             <div className="dash-card">
