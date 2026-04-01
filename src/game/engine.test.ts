@@ -376,6 +376,28 @@ describe("engine", () => {
     expect(next.summary?.chosenUpgradeIds).toContain("combo-window-up");
   });
 
+  it("clears hidden pause state when choosing an adventure upgrade", () => {
+    const base = makeAdventureState();
+    const state = makeAdventureState({
+      isPaused: true,
+      run: {
+        ...base.run,
+        phase: "draft",
+        upgradeDraft: {
+          offeredIds: ["combo-window-up", "sugar-debt", "dash-line"],
+          source: "normal"
+        }
+      }
+    });
+
+    const next = chooseUpgrade(state, "combo-window-up", 1000);
+
+    expect(next.run.phase).toBe("segment");
+    expect(next.run.upgradeDraft).toBeNull();
+    expect(next.isPaused).toBe(false);
+    expect(next.run.chosenUpgradeIds).toContain("combo-window-up");
+  });
+
   it("keeps overclocked metabolism faster than a neutral upgrade after resuming adventure", () => {
     vi.spyOn(Math, "random").mockImplementation(() => 0.9);
     const base = makeAdventureState({

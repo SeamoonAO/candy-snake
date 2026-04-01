@@ -132,6 +132,11 @@ export function useSnakeGame() {
           event.preventDefault();
           return;
         }
+
+        if (event.code === "Space") {
+          event.preventDefault();
+          return;
+        }
       }
 
       if (direction) {

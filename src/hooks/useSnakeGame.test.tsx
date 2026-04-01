@@ -41,7 +41,7 @@ function renderUseSnakeGame() {
       const adventureState = setGameMode(createInitialState(1), "adventure", 1);
       const draftState = {
         ...adventureState,
-        isPaused: true,
+        isPaused: false,
         isGameOver: false,
         queuedDirection: null,
         run: {
@@ -104,7 +104,7 @@ describe("useSnakeGame", () => {
     game.press("ArrowUp", "ArrowUp");
 
     expect(game.current.state.queuedDirection).toBeNull();
-    expect(game.current.state.isPaused).toBe(true);
+    expect(game.current.state.isPaused).toBe(false);
     expect(game.current.state.run.phase).toBe("draft");
 
     game.press("1", "Digit1");
@@ -112,6 +112,33 @@ describe("useSnakeGame", () => {
     expect(game.current.state.run.phase).toBe("segment");
     expect(game.current.state.run.upgradeDraft).toBeNull();
     expect(game.current.state.run.chosenUpgradeIds).toContain("overclocked-metabolism");
+
+    game.unmount();
+  });
+
+  it("ignores space pause toggles while an adventure draft is open", () => {
+    const game = renderUseSnakeGame();
+
+    act(() => {
+      game.current.updateGameMode("adventure");
+      game.current.startGame();
+    });
+
+    game.setDraftOpen();
+
+    expect(game.current.state.run.phase).toBe("draft");
+    expect(game.current.state.isPaused).toBe(false);
+
+    game.press(" ", "Space");
+
+    expect(game.current.state.run.phase).toBe("draft");
+    expect(game.current.state.isPaused).toBe(false);
+
+    game.press("2", "Digit2");
+
+    expect(game.current.state.run.phase).toBe("segment");
+    expect(game.current.state.isPaused).toBe(false);
+    expect(game.current.state.run.chosenUpgradeIds).toContain("sugar-debt");
 
     game.unmount();
   });

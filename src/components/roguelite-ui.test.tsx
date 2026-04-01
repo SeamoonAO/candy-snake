@@ -50,6 +50,12 @@ describe("roguelite UI", () => {
       <UpgradeOverlay offers={sampleOffers} source="elite" onSelect={() => undefined} />
     );
 
+    const buttons = Array.from(view.container.querySelectorAll("button.upgrade-card"));
+
+    expect(buttons).toHaveLength(3);
+    expect(buttons.map((button) => button.textContent?.includes("Sugar Rush"))).toContain(true);
+    expect(buttons.map((button) => button.textContent?.includes("Candy Armor"))).toContain(true);
+    expect(buttons.map((button) => button.textContent?.includes("Phase Scales"))).toContain(true);
     expect(view.container.textContent).toContain("Sugar Rush");
     expect(view.container.textContent).toContain("Candy Armor");
     expect(view.container.textContent).toContain("Phase Scales");

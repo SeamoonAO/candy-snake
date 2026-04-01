@@ -843,6 +843,7 @@ export function chooseUpgrade(state: GameState, upgradeId: string, now: number):
   return syncAdventureBoardState(
     {
       ...upgraded,
+      isPaused: false,
       run: advanceRunSegment(upgraded.run, now)
     },
     now
