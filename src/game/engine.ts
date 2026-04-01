@@ -542,7 +542,7 @@ function shouldOpenDraft(state: GameState, now: number): boolean {
   );
 }
 
-function createDraft(state: GameState): { draft: UpgradeDraft; run: RogueliteRunState } {
+function createDraft(state: GameState, _now: number): { draft: UpgradeDraft; run: RogueliteRunState } {
   const source: UpgradeDraft["source"] = state.run.eliteSegment
     ? "elite"
     : state.run.collapseStarted
@@ -871,6 +871,17 @@ export function step(state: GameState, now: number): GameState {
 
   if (state.isGameOver || state.isPaused) return state;
   if (state.mode === "adventure" && state.run.phase === "draft") return state;
+  if (shouldOpenDraft(state, now)) {
+    const { run } = createDraft(state, now);
+    const drafted = {
+      ...state,
+      run
+    };
+    return {
+      ...drafted,
+      tickMs: computeTickMs(drafted, now)
+    };
+  }
 
   const comboState = normalizeCombo(state, now);
   const effects = cleanupExpiredEffects(state.effects, now);
@@ -1091,19 +1102,7 @@ export function step(state: GameState, now: number): GameState {
 
   const normalized = withBoardState(interim, {}, now + 100);
   if (state.mode === "adventure") {
-    const synced = syncAdventureBoardState(normalized, now);
-    if (shouldOpenDraft(synced, now)) {
-      const { run } = createDraft(synced);
-      const drafted = {
-        ...synced,
-        run
-      };
-      return {
-        ...drafted,
-        tickMs: computeTickMs(drafted, now)
-      };
-    }
-    return synced;
+    return syncAdventureBoardState(normalized, now);
   }
 
   return {

@@ -315,10 +315,19 @@ describe("engine", () => {
     expect(state.summary).toBeNull();
   });
 
-  it("opens an upgrade draft when an adventure segment ends", () => {
+  it("opens an upgrade draft when an adventure segment ends without advancing the board", () => {
     vi.spyOn(Math, "random").mockImplementation(() => 0.9);
     const base = makeAdventureState();
     const state = makeAdventureState({
+      snake: [
+        { x: 12, y: 12 },
+        { x: 11, y: 12 },
+        { x: 10, y: 12 },
+        { x: 9, y: 12 }
+      ],
+      direction: "right",
+      enemies: [],
+      foods: [{ x: 2, y: 2 }],
       run: { ...base.run, segmentEndsAt: 1000 }
     });
 
@@ -327,6 +336,9 @@ describe("engine", () => {
     expect(next.isPaused).toBe(false);
     expect(next.run.phase).toBe("draft");
     expect(next.run.upgradeDraft?.offeredIds).toHaveLength(3);
+    expect(next.snake).toEqual(state.snake);
+    expect(next.enemies).toEqual(state.enemies);
+    expect(next.score).toBe(state.score);
     vi.restoreAllMocks();
   });
 
