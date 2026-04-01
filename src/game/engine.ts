@@ -931,22 +931,11 @@ export function step(state: GameState, now: number): GameState {
   const hitSelf = futureBody.some((segment) => samePoint(segment, nextHead));
   const hitEnemy = enemyOccupied.has(pointToKey(nextHead));
   const hitObstacle = obstacleSet.has(pointToKey(nextHead));
-  const fatalCollision = hitWall || hitSelf || hitEnemy || hitObstacle;
   const dashInvulnerable =
     state.activeSkill.invulnerableUntil !== null && now < state.activeSkill.invulnerableUntil;
+  const fatalCollision = hitWall || (!dashInvulnerable && (hitSelf || hitEnemy || hitObstacle));
 
   if (fatalCollision) {
-    if (dashInvulnerable) {
-      return {
-        ...state,
-        ...comboState,
-        run: collisionRun,
-        direction: moveDirection,
-        queuedDirection: null,
-        effects,
-        tickMs: computeTickMs({ ...state, ...comboState, effects, run: collisionRun }, now)
-      };
-    }
     if (effects.shield) {
       return {
         ...state,

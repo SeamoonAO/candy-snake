@@ -33,8 +33,13 @@ function findEnemyHeadAt(enemies: EnemySnake[], point: Point): EnemySnake | unde
   return enemies.find((enemy) => enemy.alive && samePoint(enemy.snake[0], point));
 }
 
-function hasEnemyBodyAt(enemies: EnemySnake[], point: Point): boolean {
-  return enemies.some((enemy) => enemy.alive && enemy.snake.slice(1).some((segment) => samePoint(segment, point)));
+function hasEnemyOccupancyAt(enemies: EnemySnake[], point: Point, removedEnemyIds: Set<string>): boolean {
+  return enemies.some(
+    (enemy) =>
+      enemy.alive &&
+      !removedEnemyIds.has(enemy.id) &&
+      enemy.snake.some((segment) => samePoint(segment, point))
+  );
 }
 
 function buildDashedSnake(snake: Point[], path: Point[]): Point[] {
@@ -162,7 +167,7 @@ export function activateDash(state: GameState, now: number): GameState {
       continue;
     }
 
-    const blockedByEnemy = (enemyHead && !removedEnemyIds.has(enemyHead.id)) || hasEnemyBodyAt(state.enemies, cell);
+    const blockedByEnemy = hasEnemyOccupancyAt(state.enemies, cell, removedEnemyIds);
     const blockedByObstacle = obstacleKeys.has(pointToKey(cell));
     if (blockedByEnemy || blockedByObstacle) {
       if (state.build.hasPhaseScales && !phaseScalesUsed) {

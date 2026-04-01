@@ -547,19 +547,28 @@ describe("engine", () => {
 
   it("lets dash rescue the player from immediate obstacle pressure in adventure", () => {
     const state = makeAdventureState({
+      currentLevel: 2,
+      levelGoal: 3,
       snake: [
-        { x: 16, y: 16 },
-        { x: 15, y: 16 },
-        { x: 14, y: 16 },
-        { x: 13, y: 16 }
+        { x: 14, y: 10 },
+        { x: 13, y: 10 },
+        { x: 12, y: 10 },
+        { x: 11, y: 10 }
       ],
       direction: "right",
       foods: [{ x: 3, y: 3 }],
       enemies: [],
-      obstacles: [{ x: 17, y: 16 }],
+      obstacles: [{ x: 16, y: 10 }],
       build: {
         ...makeAdventureState().build,
         hasPhaseScales: true
+      },
+      run: {
+        ...makeAdventureState().run,
+        segmentIndex: 2,
+        eliteSegment: false,
+        collapseStarted: false,
+        segmentEndsAt: 5000
       }
     });
 
@@ -567,8 +576,10 @@ describe("engine", () => {
     const next = step(dashed, 1010);
 
     expect(dashed.isGameOver).toBe(false);
-    expect(dashed.snake[0]).toEqual({ x: 19, y: 16 });
+    expect(dashed.snake[0]).toEqual({ x: 17, y: 10 });
     expect(next.isGameOver).toBe(false);
+    expect(next.snake[0]).toEqual({ x: 18, y: 10 });
+    expect(next.obstacles).toContainEqual({ x: 16, y: 11 });
   });
 
   it("swallow-gland removes a shorter enemy instead of killing the player on dash", () => {
@@ -634,5 +645,39 @@ describe("engine", () => {
       { x: 19, y: 16 }
     ]);
     expect(next.tailHazards.every((hazard) => hazard.expiresAt > 1000)).toBe(true);
+  });
+
+  it("keeps movement progression coherent while dash-armor invulnerability is active", () => {
+    const state = makeAdventureState({
+      currentLevel: 2,
+      levelGoal: 3,
+      snake: [
+        { x: 15, y: 11 },
+        { x: 14, y: 11 },
+        { x: 13, y: 11 },
+        { x: 12, y: 11 }
+      ],
+      direction: "right",
+      foods: [{ x: 3, y: 3 }],
+      enemies: [],
+      obstacles: [{ x: 16, y: 11 }],
+      run: {
+        ...makeAdventureState().run,
+        segmentIndex: 2,
+        eliteSegment: false,
+        collapseStarted: false,
+        segmentEndsAt: 5000
+      },
+      activeSkill: {
+        ...makeAdventureState().activeSkill,
+        invulnerableUntil: 2000
+      }
+    });
+
+    const next = step(state, 1500);
+
+    expect(next.isGameOver).toBe(false);
+    expect(next.snake[0]).toEqual({ x: 16, y: 11 });
+    expect(next.snake[1]).toEqual({ x: 15, y: 11 });
   });
 });
