@@ -1,6 +1,8 @@
 import { GameBoard } from "./components/GameBoard";
 import { HudPanel } from "./components/HudPanel";
 import { Overlay } from "./components/Overlay";
+import { RunSummary } from "./components/RunSummary";
+import { UpgradeOverlay } from "./components/UpgradeOverlay";
 import { useSnakeGame } from "./hooks/useSnakeGame";
 
 export default function App() {
@@ -9,13 +11,22 @@ export default function App() {
     bursts,
     started,
     activeTimers,
+    draftOffers,
+    recentBuild,
+    dashCooldownRemainingMs,
     updateFoodCount,
     updateEnemyCount,
     updateGameMode,
     startGame,
     pauseOrResume,
-    restartGame
+    restartGame,
+    chooseDraftOption
   } = useSnakeGame();
+
+  const keyHints =
+    state.mode === "adventure"
+      ? "Keys: Arrow / WASD move, E dash, 1-3 choose draft, Space pause, R restart"
+      : "Keys: Arrow / WASD move, Space pause, R restart";
 
   return (
     <main className="app">
@@ -35,6 +46,14 @@ export default function App() {
         comboCount={state.comboCount}
         comboMultiplier={state.comboMultiplier}
         activeTimers={activeTimers}
+        runPhase={state.run.phase}
+        segmentIndex={state.run.segmentIndex}
+        eliteSegment={state.run.eliteSegment}
+        collapseStarted={state.run.collapseStarted}
+        dashCharges={state.activeSkill.charges}
+        dashMaxCharges={state.activeSkill.maxCharges}
+        dashCooldownRemainingMs={dashCooldownRemainingMs}
+        recentBuild={recentBuild}
         onFoodCountChange={updateFoodCount}
         onEnemyCountChange={updateEnemyCount}
         onModeChange={updateGameMode}
@@ -49,10 +68,20 @@ export default function App() {
           isPaused={state.isPaused}
           isGameOver={state.isGameOver}
           score={state.score}
+          hasUpgradeDraft={Boolean(state.run.upgradeDraft)}
+          hasSummary={Boolean(state.summary)}
           onStart={startGame}
           onRestart={restartGame}
         />
-        <p className="key-hints">Keys: Arrow / WASD to move, Space pause, R restart</p>
+        {state.run.upgradeDraft && draftOffers.length > 0 && (
+          <UpgradeOverlay
+            offers={draftOffers}
+            source={state.run.upgradeDraft.source}
+            onSelect={chooseDraftOption}
+          />
+        )}
+        {state.summary && <RunSummary summary={state.summary} onRestart={restartGame} />}
+        <p className="key-hints">{keyHints}</p>
       </section>
     </main>
   );

@@ -24,6 +24,14 @@ interface Props {
   comboCount: number;
   comboMultiplier: number;
   activeTimers: ActiveTimers;
+  runPhase: "segment" | "draft";
+  segmentIndex: number;
+  eliteSegment: boolean;
+  collapseStarted: boolean;
+  dashCharges: number;
+  dashMaxCharges: number;
+  dashCooldownRemainingMs: number;
+  recentBuild: Array<{ id: string; label: string }>;
   onFoodCountChange: (count: number) => void;
   onEnemyCountChange: (count: number) => void;
   onModeChange: (mode: GameMode) => void;
@@ -51,12 +59,24 @@ export function HudPanel({
   comboCount,
   comboMultiplier,
   activeTimers,
+  runPhase,
+  segmentIndex,
+  eliteSegment,
+  collapseStarted,
+  dashCharges,
+  dashMaxCharges,
+  dashCooldownRemainingMs,
+  recentBuild,
   onFoodCountChange,
   onEnemyCountChange,
   onModeChange,
   onPauseToggle,
   onRestart
 }: Props) {
+  const dashReady = dashCharges > 0;
+  const dashHint = dashReady ? "Dash ready on E" : `Cooldown ${toSeconds(dashCooldownRemainingMs)}s`;
+  const segmentSource = collapseStarted ? "Collapse" : eliteSegment ? "Elite" : "Standard";
+
   return (
     <aside className="hud-panel">
       <h1>Candy Snake</h1>
@@ -107,6 +127,33 @@ export function HudPanel({
           <span>Level {currentLevel}</span>
           <strong>{mode === "adventure" ? `${score}/${levelGoal}` : "Free play"}</strong>
         </div>
+        {mode === "adventure" && (
+          <div className="run-panel">
+            <div className="run-header">
+              <h2>Run</h2>
+              <span className={`mode-chip ${runPhase === "draft" ? "draft-chip" : ""}`}>{runPhase}</span>
+            </div>
+            <div className="run-meta">
+              <div className="run-stat">
+                <span>Segment</span>
+                <strong>{segmentIndex}</strong>
+              </div>
+              <div className="run-stat">
+                <span>Source</span>
+                <strong>{segmentSource}</strong>
+              </div>
+            </div>
+            <div className="dash-card">
+              <div>
+                <span className="dash-label">Dash</span>
+                <strong>
+                  {dashCharges}/{dashMaxCharges}
+                </strong>
+              </div>
+              <span className={`dash-hint ${dashReady ? "ready" : ""}`}>{dashHint}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="combo-panel">
@@ -147,6 +194,26 @@ export function HudPanel({
         </div>
       </div>
 
+      {mode === "adventure" && (
+        <div className="build-panel">
+          <div className="combo-header">
+            <h2>Build</h2>
+            <span className="mode-chip">{recentBuild.length}</span>
+          </div>
+          <div className="build-chip-list">
+            {recentBuild.length > 0 ? (
+              recentBuild.map((upgrade) => (
+                <span key={`${upgrade.id}-${upgrade.label}`} className="build-chip">
+                  {upgrade.label}
+                </span>
+              ))
+            ) : (
+              <span className="build-empty">Draft picks will stack here.</span>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="settings-panel">
         <h2>Game Setup</h2>
         <label className="slider-row">
@@ -171,6 +238,12 @@ export function HudPanel({
         </label>
         <p className="setup-note">Adventure mode adds obstacle maps and level goals on top of your chosen setup.</p>
       </div>
+
+      <p className="control-copy">
+        {mode === "adventure"
+          ? "Move with Arrow / WASD. Press E to dash, 1-3 to draft, Space to pause, R to reset."
+          : "Move with Arrow / WASD. Press Space to pause and R to reset."}
+      </p>
 
       <div className="controls">
         <button

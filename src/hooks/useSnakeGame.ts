@@ -8,9 +8,11 @@ import {
   setGameMode,
   step,
   togglePause,
-  turn
+  turn,
+  useActiveSkill
 } from "../game/engine";
 import { getEffectRemainingMs } from "../game/powerups";
+import { resolveUpgradeOffers, UPGRADE_DEFS } from "../game/upgrades";
 import type { Direction, GameMode, GameState } from "../game/types";
 import { loadStats, saveStats } from "../storage/stats";
 
@@ -43,6 +45,8 @@ const KEY_TO_DRAFT_INDEX: Record<string, number> = {
   "3": 2
 };
 
+const UPGRADE_LABELS = new Map(UPGRADE_DEFS.map((upgrade) => [upgrade.id, upgrade.label]));
+
 export function useSnakeGame() {
   const [state, setState] = useState<GameState>(() => createInitialState());
   const [bursts, setBursts] = useState<BurstEffect[]>([]);
@@ -70,7 +74,8 @@ export function useSnakeGame() {
   }, []);
 
   useEffect(() => {
-    if (state.isPaused || state.isGameOver) return undefined;
+    const draftPaused = state.run.phase === "draft";
+    if (state.isPaused || state.isGameOver || draftPaused) return undefined;
     const timer = window.setInterval(() => {
       const now = Date.now();
       setState((prev) => {
@@ -102,7 +107,7 @@ export function useSnakeGame() {
     return () => {
       window.clearInterval(timer);
     };
-  }, [state.isPaused, state.isGameOver, state.tickMs]);
+  }, [state.isPaused, state.isGameOver, state.run.phase, state.tickMs]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -148,6 +153,14 @@ export function useSnakeGame() {
           if (!startedRef.current || prev.isGameOver) return prev;
           return togglePause(prev);
         });
+        return;
+      }
+
+      if (event.key.toLowerCase() === "e") {
+        if (currentState.mode !== "adventure") return;
+        event.preventDefault();
+        setState((prev) => useActiveSkill(prev, Date.now()));
+        return;
       }
 
       if (event.key.toLowerCase() === "r") {
@@ -155,6 +168,7 @@ export function useSnakeGame() {
         setState((prev) => restart(prev));
         setStarted(false);
         processedGameOverRef.current = false;
+        setBursts([]);
       }
     };
 
@@ -183,6 +197,25 @@ export function useSnakeGame() {
       shield: state.effects.shield
     };
   }, [state.effects]);
+
+  const draftOffers = useMemo(() => resolveUpgradeOffers(state.run.upgradeDraft), [state.run.upgradeDraft]);
+
+  const recentBuild = useMemo(
+    () =>
+      state.run.chosenUpgradeIds
+        .map((upgradeId) => ({
+          id: upgradeId,
+          label: UPGRADE_LABELS.get(upgradeId) ?? upgradeId
+        }))
+        .slice(-4)
+        .reverse(),
+    [state.run.chosenUpgradeIds]
+  );
+
+  const dashCooldownRemainingMs = useMemo(() => {
+    if (state.activeSkill.recoveryEndsAt === null) return 0;
+    return Math.max(0, state.activeSkill.recoveryEndsAt - Date.now());
+  }, [state.activeSkill]);
 
   const startGame = () => {
     if (state.isGameOver) return;
@@ -214,16 +247,24 @@ export function useSnakeGame() {
     setState((prev) => setGameMode(prev, mode));
   };
 
+  const chooseDraftOption = (upgradeId: string) => {
+    setState((prev) => chooseUpgrade(prev, upgradeId, Date.now()));
+  };
+
   return {
     state,
     bursts,
     started,
     activeTimers,
+    draftOffers,
+    recentBuild,
+    dashCooldownRemainingMs,
     updateFoodCount,
     updateEnemyCount,
     updateGameMode,
     startGame,
     pauseOrResume,
-    restartGame
+    restartGame,
+    chooseDraftOption
   };
 }

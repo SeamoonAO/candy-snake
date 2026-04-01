@@ -3,11 +3,22 @@ interface Props {
   isPaused: boolean;
   isGameOver: boolean;
   score: number;
+  hasUpgradeDraft: boolean;
+  hasSummary: boolean;
   onStart: () => void;
   onRestart: () => void;
 }
 
-export function Overlay({ started, isPaused, isGameOver, score, onStart, onRestart }: Props) {
+export function Overlay({
+  started,
+  isPaused,
+  isGameOver,
+  score,
+  hasUpgradeDraft,
+  hasSummary,
+  onStart,
+  onRestart
+}: Props) {
   if (!started) {
     return (
       <div className="overlay">
@@ -22,6 +33,10 @@ export function Overlay({ started, isPaused, isGameOver, score, onStart, onResta
     );
   }
 
+  if (hasSummary) {
+    return null;
+  }
+
   if (isGameOver) {
     return (
       <div className="overlay">
@@ -34,6 +49,10 @@ export function Overlay({ started, isPaused, isGameOver, score, onStart, onResta
         </div>
       </div>
     );
+  }
+
+  if (hasUpgradeDraft) {
+    return null;
   }
 
   if (isPaused) {

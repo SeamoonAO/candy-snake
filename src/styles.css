@@ -113,7 +113,9 @@ body {
 }
 
 .mode-panel,
-.combo-panel {
+.combo-panel,
+.run-panel,
+.build-panel {
   margin-top: 16px;
   padding: 12px;
   border-radius: 16px;
@@ -122,7 +124,8 @@ body {
 }
 
 .mode-header,
-.combo-header {
+.combo-header,
+.run-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -130,7 +133,9 @@ body {
 }
 
 .mode-panel h2,
-.combo-panel h2 {
+.combo-panel h2,
+.run-panel h2,
+.build-panel h2 {
   margin: 0;
   font-size: 1rem;
 }
@@ -150,6 +155,12 @@ body {
   background: linear-gradient(135deg, #ff7a49, #ff4fb1);
   border-color: transparent;
   box-shadow: 0 8px 16px #ff7a4940;
+}
+
+.draft-chip {
+  color: #fff;
+  background: linear-gradient(135deg, #ff9c54, #ff5877);
+  border-color: transparent;
 }
 
 .segmented {
@@ -186,6 +197,64 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.run-meta {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.run-stat,
+.summary-stat {
+  border-radius: 12px;
+  border: 1px solid #00000010;
+  background: #ffffffc7;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.run-stat span,
+.summary-stat span,
+.dash-label,
+.summary-label {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+}
+
+.run-stat strong,
+.summary-stat strong {
+  font-size: 1rem;
+}
+
+.dash-card {
+  margin-top: 10px;
+  border-radius: 12px;
+  border: 1px solid #00000010;
+  background: linear-gradient(135deg, #fff6de, #fff);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dash-card strong {
+  display: block;
+  font-size: 1.15rem;
+}
+
+.dash-hint {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.dash-hint.ready {
+  color: #1f8f6c;
 }
 
 .combo-copy,
@@ -253,6 +322,27 @@ body {
   font-size: 1rem;
 }
 
+.build-chip-list {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.build-chip {
+  border-radius: 999px;
+  border: 1px solid #00000010;
+  background: #ffffffd8;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.build-empty {
+  color: var(--text-soft);
+  font-size: 0.84rem;
+}
+
 .slider-row {
   display: flex;
   flex-direction: column;
@@ -268,6 +358,12 @@ body {
 
 .slider-row input {
   accent-color: #ff6f61;
+}
+
+.control-copy {
+  margin: 16px 0 0;
+  color: var(--text-soft);
+  font-size: 0.84rem;
 }
 
 .controls {
@@ -496,6 +592,113 @@ body {
   color: var(--text-soft);
 }
 
+.overlay-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #d26555;
+}
+
+.draft-overlay,
+.summary-overlay {
+  padding: 20px;
+  background: linear-gradient(180deg, #fff5f0d4, #fff6d5cc);
+}
+
+.upgrade-overlay-card,
+.summary-card {
+  width: min(92%, 640px);
+  text-align: left;
+}
+
+.upgrade-options,
+.summary-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.upgrade-options {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.upgrade-card {
+  border: 1px solid #00000012;
+  border-radius: 16px;
+  background: #fff;
+  padding: 12px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--text-strong);
+  box-shadow: 0 10px 20px #00000012;
+}
+
+.upgrade-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.upgrade-key,
+.upgrade-rarity {
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.upgrade-key {
+  background: #2a2d35;
+  color: #fff;
+}
+
+.upgrade-rarity {
+  background: #fff5e3;
+  color: #9d5b00;
+}
+
+.upgrade-card strong {
+  font-size: 1rem;
+}
+
+.upgrade-id {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+}
+
+.rarity-common {
+  background: linear-gradient(180deg, #fff, #fff6ec);
+}
+
+.rarity-skill {
+  background: linear-gradient(180deg, #fff, #eef8ff);
+}
+
+.rarity-mutation {
+  background: linear-gradient(180deg, #fff, #f4ecff);
+}
+
+.rarity-risk {
+  background: linear-gradient(180deg, #fff, #fff0f0);
+}
+
+.summary-copy {
+  margin-bottom: 12px;
+}
+
+.summary-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.summary-build {
+  margin-top: 12px;
+}
+
 .key-hints {
   margin: 4px 0 0;
   color: #415063;
@@ -511,5 +714,9 @@ body {
 
   .hud-panel {
     width: min(96vw, 720px);
+  }
+
+  .upgrade-options {
+    grid-template-columns: 1fr;
   }
 }
