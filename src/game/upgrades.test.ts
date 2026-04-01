@@ -28,10 +28,45 @@ describe("upgrades", () => {
     expect(offers.some((offer) => offer.id === "swallow-gland")).toBe(false);
   });
 
-  it("uses stored run RNG state so repeated calls from the same state stay deterministic", () => {
-    const state = makeAdventureState();
-    expect(buildUpgradeOffers(state, "normal").offers.map((offer) => offer.id)).toEqual(
-      buildUpgradeOffers(state, "normal").offers.map((offer) => offer.id)
+  it("uses run seed and roll cursor to drive deterministic drafts", () => {
+    const baseState = makeAdventureState();
+    const firstState = {
+      ...baseState,
+      run: {
+        ...baseState.run,
+        rollCursor: 0
+      }
+    };
+    const sameCursorState = {
+      ...baseState,
+      run: {
+        ...baseState.run,
+        rollCursor: 0
+      }
+    };
+    const advancedCursorState = {
+      ...baseState,
+      run: {
+        ...baseState.run,
+        rollCursor: 1
+      }
+    };
+
+    const firstDraft = buildUpgradeOffers(firstState, "normal");
+    const sameCursorDraft = buildUpgradeOffers(sameCursorState, "normal");
+    const advancedCursorDraft = buildUpgradeOffers(advancedCursorState, "normal");
+
+    expect(firstDraft.offers.map((offer) => offer.id)).toEqual(
+      sameCursorDraft.offers.map((offer) => offer.id)
+    );
+    expect(firstDraft.run.upgradeDraft?.offeredIds).toEqual(
+      sameCursorDraft.run.upgradeDraft?.offeredIds
+    );
+    expect(advancedCursorDraft.offers.map((offer) => offer.id)).not.toEqual(
+      firstDraft.offers.map((offer) => offer.id)
+    );
+    expect(advancedCursorDraft.run.upgradeDraft?.offeredIds).not.toEqual(
+      firstDraft.run.upgradeDraft?.offeredIds
     );
   });
 
