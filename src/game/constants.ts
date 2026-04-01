@@ -1,4 +1,4 @@
-import type { PowerUpType } from "./types";
+import type { PowerUpType, UpgradeDraftSource } from "./types";
 
 export const BOARD_WIDTH = 32;
 export const BOARD_HEIGHT = 32;
@@ -27,6 +27,38 @@ export const DASH_INITIAL_CHARGES = 1;
 export const DASH_MAX_CHARGES = 1;
 export const DASH_COOLDOWN_MS = 9_000;
 export const DASH_DISTANCE = 3;
+export const UPGRADE_OFFER_COUNT = 3;
+export const UPGRADE_CATALOG_MIN_SIZE = 18;
+export const UPGRADE_CATALOG_MAX_SIZE = 24;
+export const UPGRADE_COMBO_WINDOW_STEP_MS = 400;
+export const UPGRADE_DASH_COOLDOWN_STEP_MS = 1_200;
+export const UPGRADE_MIN_DASH_COOLDOWN_MS = 3_000;
+export const UPGRADE_RISK_SCORE_BONUS = 15;
+export const UPGRADE_RISK_TICK_BONUS_MS = 8;
+
+export const UPGRADE_RARITY_WEIGHTS: Record<
+  UpgradeDraftSource,
+  Record<"common" | "skill" | "mutation" | "risk", number>
+> = {
+  normal: {
+    common: 10,
+    skill: 4,
+    mutation: 3,
+    risk: 2
+  },
+  elite: {
+    common: 4,
+    skill: 7,
+    mutation: 7,
+    risk: 3
+  },
+  collapseBonus: {
+    common: 5,
+    skill: 5,
+    mutation: 4,
+    risk: 1
+  }
+};
 
 export const POWERUP_SPAWN_CHANCE = 0.08;
 export const POWERUP_TTL_MS = 8_000;

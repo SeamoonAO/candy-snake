@@ -8,6 +8,10 @@ export type GameMode = "endless" | "adventure";
 
 export type RunPhase = "segment" | "draft";
 
+export type UpgradeDraftSource = "normal" | "elite" | "collapseBonus";
+
+export type UpgradeGroup = "combo" | "dash" | "glutton" | "mutation" | "risk";
+
 export type PowerUpType =
   | "SPEED_UP"
   | "SLOW_DOWN"
@@ -41,7 +45,7 @@ export interface EnemySnake {
 
 export interface UpgradeDraft {
   offeredIds: string[];
-  source: "normal" | "elite" | "collapseBonus";
+  source: UpgradeDraftSource;
 }
 
 export interface ActiveSkillState {
