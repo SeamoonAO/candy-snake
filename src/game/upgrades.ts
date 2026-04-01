@@ -33,7 +33,6 @@ export interface UpgradeDefinition {
 const alwaysEligible = () => true;
 
 function appendChosenUpgrade(run: RogueliteRunState, upgradeId: string): RogueliteRunState {
-  if (run.chosenUpgradeIds.includes(upgradeId)) return run;
   return {
     ...run,
     chosenUpgradeIds: [...run.chosenUpgradeIds, upgradeId]
@@ -466,6 +465,11 @@ export function resolveUpgradeOffers(draft: UpgradeDraft | null): UpgradeDefinit
 }
 
 export function applyUpgradeChoice(state: GameState, upgradeId: string): GameState {
+  const draft = state.run.upgradeDraft;
+  if (!draft || !draft.offeredIds.includes(upgradeId)) {
+    return state;
+  }
+
   const upgrade = UPGRADE_BY_ID.get(upgradeId);
   if (!upgrade || !upgrade.eligible(state) || isAlreadyChosen(state, upgrade)) {
     return state;
