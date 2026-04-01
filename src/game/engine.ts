@@ -1,5 +1,8 @@
 import {
+  ADVENTURE_COLLAPSE_TICK_MULTIPLIER,
+  ADVENTURE_LEVEL_TICK_STEP,
   ADVENTURE_LEVEL_GOALS,
+  ADVENTURE_MIN_LEVEL_TICK_MULTIPLIER,
   BOARD_HEIGHT,
   BOARD_WIDTH,
   COMBO_WINDOW_MS,
@@ -21,11 +24,14 @@ import {
   MIN_FOOD_COUNT,
   POWERUP_SPAWN_CHANCE,
   POWERUP_TTL_MS,
+  SEGMENT_DURATION_MS,
   SCORE_PER_SPEED_STEP,
-  SPEED_STEP_MS
+  SPEED_STEP_MS,
+  TARGET_SEGMENTS_PER_RUN
 } from "./constants";
 import { applyPowerUp, choosePowerUpType, cleanupExpiredEffects, isEffectActive } from "./powerups";
 import { chance, createRng, pointToKey, randomEmptyCell } from "./random";
+import { applyUpgradeChoice, buildUpgradeOffers } from "./upgrades";
 import type {
   ActiveSkillState,
   BuildModifiers,
@@ -35,7 +41,9 @@ import type {
   GameMode,
   GameState,
   Point,
-  RogueliteRunState
+  RogueliteRunState,
+  RunSummary,
+  UpgradeDraft
 } from "./types";
 
 const DIRECTION_VECTORS: Record<Direction, Point> = {
@@ -103,10 +111,16 @@ function computeBaseTickMs(score: number): number {
 }
 
 function computeTickMs(state: GameState, now: number): number {
-  let tick = computeBaseTickMs(state.score);
+  let tick = state.mode === "adventure" ? INITIAL_TICK_MS : computeBaseTickMs(state.score);
   if (isEffectActive(state.effects.speedUpUntil, now)) tick *= 0.75;
   if (isEffectActive(state.effects.slowDownUntil, now)) tick *= 1.35;
-  if (state.mode === "adventure") tick *= Math.max(0.76, 1 - (state.currentLevel - 1) * 0.05);
+  if (state.mode === "adventure") {
+    tick *= Math.max(
+      ADVENTURE_MIN_LEVEL_TICK_MULTIPLIER,
+      1 - (state.currentLevel - 1) * ADVENTURE_LEVEL_TICK_STEP
+    );
+    if (state.run.collapseStarted) tick *= ADVENTURE_COLLAPSE_TICK_MULTIPLIER;
+  }
   return Math.max(40, Math.round(tick));
 }
 
@@ -256,6 +270,13 @@ function createRogueliteScaffolding(seed?: number): Pick<
     tailHazards: [],
     activeSkill: createActiveSkillState(),
     summary: null
+  };
+}
+
+function beginAdventureRun(now: number, seed = 1): RogueliteRunState {
+  return {
+    ...createRunState(seed),
+    segmentEndsAt: now + SEGMENT_DURATION_MS
   };
 }
 
@@ -512,8 +533,144 @@ function getComboMultiplier(comboCount: number): number {
   return Math.min(MAX_COMBO_MULTIPLIER, Math.max(1, comboCount));
 }
 
-function applyAdventureProgress(state: GameState, score: number): Pick<GameState, "currentLevel" | "levelGoal" | "obstacles"> {
-  return createLevelState(state.mode, score);
+function shouldOpenDraft(state: GameState, now: number): boolean {
+  return (
+    state.mode === "adventure" &&
+    state.run.phase === "segment" &&
+    state.run.segmentEndsAt !== null &&
+    now >= state.run.segmentEndsAt
+  );
+}
+
+function createDraft(state: GameState): { draft: UpgradeDraft; run: RogueliteRunState } {
+  const source: UpgradeDraft["source"] = state.run.eliteSegment
+    ? "elite"
+    : state.run.collapseStarted
+      ? "collapseBonus"
+      : "normal";
+  const { run } = buildUpgradeOffers(
+    {
+      ...state,
+      run: {
+        ...state.run,
+        phase: "draft",
+        upgradeDraft: null
+      }
+    },
+    source
+  );
+  const draft = run.upgradeDraft ?? {
+    offeredIds: [],
+    source
+  };
+
+  return {
+    draft,
+    run: {
+      ...run,
+      phase: "draft",
+      segmentEndsAt: null,
+      upgradeDraft: draft
+    }
+  };
+}
+
+function advanceRunSegment(run: RogueliteRunState, now: number): RogueliteRunState {
+  const segmentIndex = run.segmentIndex + 1;
+  return {
+    ...run,
+    segmentIndex,
+    segmentEndsAt: now + SEGMENT_DURATION_MS,
+    phase: "segment",
+    eliteSegment: segmentIndex % ELITE_SEGMENT_INTERVAL === 0,
+    collapseStarted: segmentIndex >= COLLAPSE_START_SEGMENT,
+    upgradeDraft: null
+  };
+}
+
+function buildRunSummary(state: GameState): RunSummary {
+  const segmentReached = Math.max(1, state.run.segmentIndex);
+  return {
+    segmentReached,
+    clearedSegments: Math.max(0, segmentReached - 1),
+    score: state.score,
+    highestCombo: Math.max(state.run.highestCombo, state.comboCount),
+    chosenUpgradeIds: [...state.run.chosenUpgradeIds]
+  };
+}
+
+function getAdventurePressureProfile(run: RogueliteRunState): {
+  level: number;
+  goalLabel: number;
+  obstacleTheme: Point[];
+  enemyProfile: EnemyPersonality[];
+} {
+  const level = Math.max(1, run.segmentIndex);
+  const obstacleLevel = run.collapseStarted ? level + 2 : run.eliteSegment ? level + 1 : level;
+  let enemyProfile: EnemyPersonality[] = ["greedy"];
+
+  if (level >= 3) enemyProfile = ["greedy", "hunter"];
+  if (run.eliteSegment) enemyProfile = ["hunter", "careful"];
+  if (level >= 6) enemyProfile = ["greedy", "hunter", "careful"];
+  if (run.collapseStarted) enemyProfile = ["hunter", "greedy", "careful"];
+
+  return {
+    level,
+    goalLabel: Math.min(TARGET_SEGMENTS_PER_RUN, level + 1),
+    obstacleTheme: buildObstaclePattern(obstacleLevel),
+    enemyProfile
+  };
+}
+
+function syncAdventureBoardState(state: GameState, now: number): GameState {
+  if (state.mode !== "adventure") return state;
+
+  const profile = getAdventurePressureProfile(state.run);
+  const safeObstacles = sanitizeObstacles(profile.obstacleTheme, [
+    ...state.snake,
+    ...state.foods,
+    ...state.enemies.flatMap((enemy) => enemy.snake),
+    ...(state.powerUp ? [state.powerUp.position] : [])
+  ]);
+  const occupied = new Set<string>(state.snake.map(pointToKey));
+  addPoints(occupied, safeObstacles);
+
+  const currentEnemies = state.enemies.filter((enemy) => enemy.alive).slice(0, profile.enemyProfile.length);
+  addPoints(occupied, currentEnemies.flatMap((enemy) => enemy.snake));
+
+  const missing = profile.enemyProfile.length - currentEnemies.length;
+  const extraEnemies: EnemySnake[] = [];
+  for (let index = 0; index < missing; index += 1) {
+    const extra = spawnEnemyByIndex(
+      currentEnemies.length + index,
+      occupied,
+      state.run.seed + profile.level + index
+    );
+    if (!extra) continue;
+    extraEnemies.push(extra);
+  }
+  const enemies = [...currentEnemies, ...extraEnemies].slice(0, profile.enemyProfile.length).map((enemy, index) => ({
+    ...enemy,
+    id: `enemy-${index + 1}`,
+    personality: profile.enemyProfile[index] ?? getEnemyPersonality(index)
+  }));
+
+  const normalized = withBoardState(
+    {
+      ...state,
+      currentLevel: profile.level,
+      levelGoal: profile.goalLabel,
+      obstacles: safeObstacles,
+      enemies
+    },
+    {},
+    state.run.seed + profile.level
+  );
+
+  return {
+    ...normalized,
+    tickMs: computeTickMs(normalized, now)
+  };
 }
 
 function syncFoodsToBoard(state: GameState, seed?: number): Point[] {
@@ -623,6 +780,23 @@ export function setGameMode(state: GameState, mode: GameMode, seed?: number): Ga
   if (state.mode === mode) return state;
   const runSeed = resolveRunSeed(seed, state.run.seed);
   const roguelite = createRogueliteScaffolding(runSeed);
+
+  if (mode === "adventure") {
+    return syncAdventureBoardState(
+      {
+        ...state,
+        ...roguelite,
+        mode,
+        run: {
+          ...beginAdventureRun(0, runSeed),
+          segmentEndsAt: null
+        },
+        powerUp: null
+      },
+      0
+    );
+  }
+
   const levelState = createLevelState(mode, state.score);
   const safeObstacles = sanitizeObstacles(levelState.obstacles, [
     ...state.snake,
@@ -646,6 +820,23 @@ export function setGameMode(state: GameState, mode: GameMode, seed?: number): Ga
   return withBoardState(next, {}, runSeed);
 }
 
+export function chooseUpgrade(state: GameState, upgradeId: string, now: number): GameState {
+  if (state.mode !== "adventure" || state.run.phase !== "draft" || !state.run.upgradeDraft) {
+    return state;
+  }
+
+  const upgraded = applyUpgradeChoice(state, upgradeId);
+  if (upgraded === state) return state;
+
+  return syncAdventureBoardState(
+    {
+      ...upgraded,
+      run: advanceRunSegment(upgraded.run, now)
+    },
+    now
+  );
+}
+
 export function restart(state: GameState, seed?: number): GameState {
   const runSeed = resolveRunSeed(seed, state.run.seed);
   const fresh = createInitialState(runSeed);
@@ -660,10 +851,33 @@ export function restart(state: GameState, seed?: number): GameState {
 }
 
 export function step(state: GameState, now: number): GameState {
+  const activeState =
+    state.mode === "adventure" &&
+    state.run.phase === "segment" &&
+    state.run.segmentEndsAt === null
+      ? syncAdventureBoardState(
+          {
+            ...state,
+            run: {
+              ...state.run,
+              segmentEndsAt: beginAdventureRun(now, state.run.seed).segmentEndsAt
+            }
+          },
+          now
+        )
+      : state;
+
+  state = activeState;
+
   if (state.isGameOver || state.isPaused) return state;
+  if (state.mode === "adventure" && state.run.phase === "draft") return state;
 
   const comboState = normalizeCombo(state, now);
   const effects = cleanupExpiredEffects(state.effects, now);
+  const collisionRun = {
+    ...state.run,
+    highestCombo: Math.max(state.run.highestCombo, comboState.comboCount)
+  };
   const moveDirection = state.queuedDirection ?? state.direction;
   const currentHead = state.snake[0];
   const ghostWallOn = isEffectActive(effects.ghostWallUntil, now);
@@ -686,22 +900,26 @@ export function step(state: GameState, now: number): GameState {
       return {
         ...state,
         ...comboState,
+        run: collisionRun,
         direction: moveDirection,
         queuedDirection: null,
         effects: { ...effects, shield: false },
-        tickMs: computeTickMs({ ...state, ...comboState, effects }, now)
+        tickMs: computeTickMs({ ...state, ...comboState, effects, run: collisionRun }, now)
       };
     }
-    return {
+    const gameOverState: GameState = {
       ...state,
       ...comboState,
+      run: collisionRun,
       direction: moveDirection,
       queuedDirection: null,
       effects,
       isGameOver: true,
       isPaused: true,
-      tickMs: computeTickMs({ ...state, ...comboState, effects }, now)
+      tickMs: computeTickMs({ ...state, ...comboState, effects, run: collisionRun }, now),
+      summary: state.mode === "adventure" ? buildRunSummary({ ...state, ...comboState, run: collisionRun }) : null
     };
+    return gameOverState;
   }
 
   let nextSnake = [nextHead, ...state.snake];
@@ -721,6 +939,11 @@ export function step(state: GameState, now: number): GameState {
     nextSnake.pop();
   }
 
+  let nextRun: RogueliteRunState = {
+    ...state.run,
+    highestCombo: Math.max(state.run.highestCombo, nextComboCount)
+  };
+
   let nextPowerUp = state.powerUp && state.powerUp.expiresAt > now ? state.powerUp : null;
   let nextEffects = effects;
 
@@ -734,8 +957,15 @@ export function step(state: GameState, now: number): GameState {
     nextPowerUp = null;
   }
 
-  const adventureState = applyAdventureProgress(state, nextScore);
-  const safeObstacles = sanitizeObstacles(adventureState.obstacles, [
+  const boardPressure =
+    state.mode === "adventure"
+      ? {
+          currentLevel: state.currentLevel,
+          levelGoal: state.levelGoal,
+          obstacles: state.obstacles
+        }
+      : createLevelState(state.mode, nextScore);
+  const safeObstacles = sanitizeObstacles(boardPressure.obstacles, [
     ...nextSnake,
     ...nextFoods,
     ...state.enemies.flatMap((enemy) => enemy.snake),
@@ -852,13 +1082,30 @@ export function step(state: GameState, now: number): GameState {
     comboCount: nextComboCount,
     comboMultiplier: nextComboMultiplier,
     comboExpiresAt: nextComboExpiresAt,
+    run: nextRun,
     bestScore: nextBestScore,
-    currentLevel: adventureState.currentLevel,
-    levelGoal: adventureState.levelGoal,
+    currentLevel: boardPressure.currentLevel,
+    levelGoal: boardPressure.levelGoal,
     obstacles: safeObstacles
   };
 
   const normalized = withBoardState(interim, {}, now + 100);
+  if (state.mode === "adventure") {
+    const synced = syncAdventureBoardState(normalized, now);
+    if (shouldOpenDraft(synced, now)) {
+      const { run } = createDraft(synced);
+      const drafted = {
+        ...synced,
+        run
+      };
+      return {
+        ...drafted,
+        tickMs: computeTickMs(drafted, now)
+      };
+    }
+    return synced;
+  }
+
   return {
     ...normalized,
     tickMs: computeTickMs(normalized, now)

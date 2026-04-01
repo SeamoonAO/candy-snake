@@ -83,8 +83,11 @@ export interface TailHazard {
 }
 
 export interface RunSummary {
+  segmentReached: number;
   clearedSegments: number;
   score: number;
+  highestCombo: number;
+  chosenUpgradeIds: string[];
 }
 
 export interface GameState {

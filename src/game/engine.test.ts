@@ -23,6 +23,14 @@ function runningState(base = createInitialState()): GameState {
   return { ...base, isPaused: false, isGameOver: false };
 }
 
+function makeAdventureState(overrides: Partial<GameState> = {}): GameState {
+  return {
+    ...setGameMode(createInitialState(), "adventure", 1),
+    isPaused: false,
+    ...overrides
+  };
+}
+
 describe("engine", () => {
   it("creates valid initial state", () => {
     const state = createInitialState();
@@ -307,6 +315,45 @@ describe("engine", () => {
     expect(state.summary).toBeNull();
   });
 
+  it("opens an upgrade draft when an adventure segment ends", () => {
+    vi.spyOn(Math, "random").mockImplementation(() => 0.9);
+    const base = makeAdventureState();
+    const state = makeAdventureState({
+      run: { ...base.run, segmentEndsAt: 1000 }
+    });
+
+    const next = step(state, 1001);
+
+    expect(next.isPaused).toBe(false);
+    expect(next.run.phase).toBe("draft");
+    expect(next.run.upgradeDraft?.offeredIds).toHaveLength(3);
+    vi.restoreAllMocks();
+  });
+
+  it("stores a build summary when the run ends", () => {
+    const base = makeAdventureState();
+    const next = step(
+      makeAdventureState({
+        run: {
+          ...base.run,
+          chosenUpgradeIds: ["combo-window-up"],
+          segmentIndex: 4
+        },
+        snake: [
+          { x: 31, y: 16 },
+          { x: 30, y: 16 },
+          { x: 29, y: 16 },
+          { x: 28, y: 16 }
+        ],
+        direction: "right"
+      }),
+      1000
+    );
+
+    expect(next.summary?.segmentReached).toBeGreaterThan(0);
+    expect(next.summary?.chosenUpgradeIds).toContain("combo-window-up");
+  });
+
   it("creates a non-zero run seed and preserves it through mode transitions and restart", () => {
     const initial = createInitialState();
     const seed = initial.run.seed;
@@ -355,8 +402,11 @@ describe("engine", () => {
         invulnerableUntil: 700
       },
       summary: {
+        segmentReached: 3,
         clearedSegments: 2,
-        score: 99
+        score: 99,
+        highestCombo: 4,
+        chosenUpgradeIds: ["starter"]
       }
     };
 
@@ -393,18 +443,11 @@ describe("engine", () => {
     expect(next.summary).toBeNull();
   });
 
-  it("progresses adventure levels as score grows", () => {
+  it("replaces score-threshold adventure progression with run-segment pressure", () => {
     vi.spyOn(Math, "random").mockImplementation(() => 0.9);
-    const base = setGameMode(createInitialState(), "adventure", 1);
-    const state = runningState({
-      ...base,
-      score: 11,
-      foods: [{ x: base.snake[0].x + 1, y: base.snake[0].y }, ...base.foods.slice(1)]
-    });
+    const state = makeAdventureState({ score: 999 });
     const next = step(state, 1000);
-    expect(next.currentLevel).toBe(2);
-    expect(next.levelGoal).toBe(28);
-    expect(next.obstacles.length).toBeGreaterThan(0);
+    expect(next.currentLevel).toBe(state.run.segmentIndex);
     vi.restoreAllMocks();
   });
 
