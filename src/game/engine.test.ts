@@ -16,7 +16,8 @@ import {
   setFoodCount,
   setGameMode,
   step,
-  turn
+  turn,
+  useActiveSkill
 } from "./engine";
 import type { GameState } from "./types";
 
@@ -523,5 +524,115 @@ describe("engine", () => {
     const next = step(state, 1000);
     expect(next.isGameOver).toBe(true);
     vi.restoreAllMocks();
+  });
+
+  it("does not trigger dash while an adventure draft is open", () => {
+    const state = makeAdventureState({
+      run: {
+        ...makeAdventureState().run,
+        phase: "draft",
+        upgradeDraft: {
+          offeredIds: ["dash-line", "phase-scales", "shadow-tail"],
+          source: "normal"
+        }
+      }
+    });
+
+    const next = useActiveSkill(state, 1000);
+
+    expect(next).toBe(state);
+    expect(next.activeSkill.charges).toBe(state.activeSkill.charges);
+    expect(next.snake).toEqual(state.snake);
+  });
+
+  it("lets dash rescue the player from immediate obstacle pressure in adventure", () => {
+    const state = makeAdventureState({
+      snake: [
+        { x: 16, y: 16 },
+        { x: 15, y: 16 },
+        { x: 14, y: 16 },
+        { x: 13, y: 16 }
+      ],
+      direction: "right",
+      foods: [{ x: 3, y: 3 }],
+      enemies: [],
+      obstacles: [{ x: 17, y: 16 }],
+      build: {
+        ...makeAdventureState().build,
+        hasPhaseScales: true
+      }
+    });
+
+    const dashed = useActiveSkill(state, 1000);
+    const next = step(dashed, 1010);
+
+    expect(dashed.isGameOver).toBe(false);
+    expect(dashed.snake[0]).toEqual({ x: 19, y: 16 });
+    expect(next.isGameOver).toBe(false);
+  });
+
+  it("swallow-gland removes a shorter enemy instead of killing the player on dash", () => {
+    const enemy = {
+      id: "enemy-1",
+      snake: [
+        { x: 18, y: 16 },
+        { x: 18, y: 17 },
+        { x: 18, y: 18 }
+      ],
+      direction: "up" as const,
+      alive: true,
+      hue: 120,
+      personality: "hunter" as const
+    };
+    const state = makeAdventureState({
+      snake: [
+        { x: 16, y: 16 },
+        { x: 15, y: 16 },
+        { x: 14, y: 16 },
+        { x: 13, y: 16 },
+        { x: 12, y: 16 }
+      ],
+      direction: "right",
+      foods: [{ x: 3, y: 3 }],
+      enemies: [enemy],
+      obstacles: [],
+      build: {
+        ...makeAdventureState().build,
+        canSwallowShorterEnemies: true
+      }
+    });
+
+    const next = useActiveSkill(state, 1000);
+
+    expect(next.isGameOver).toBe(false);
+    expect(next.enemies[0]?.alive).toBe(false);
+  });
+
+  it("records shadow-tail hazards on crossed dash cells", () => {
+    const state = makeAdventureState({
+      snake: [
+        { x: 16, y: 16 },
+        { x: 15, y: 16 },
+        { x: 14, y: 16 },
+        { x: 13, y: 16 }
+      ],
+      direction: "right",
+      foods: [{ x: 3, y: 3 }],
+      enemies: [],
+      obstacles: [],
+      run: {
+        ...makeAdventureState().run,
+        chosenUpgradeIds: ["shadow-tail"]
+      }
+    });
+
+    const next = useActiveSkill(state, 1000);
+
+    expect(next.tailHazards.map((hazard) => hazard.position)).toEqual([
+      { x: 17, y: 16 },
+      { x: 18, y: 16 },
+      { x: 19, y: 16 }
+    ]);
+    expect(next.tailHazards.every((hazard) => hazard.expiresAt > 1000)).toBe(true);
   });
 });

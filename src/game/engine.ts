@@ -31,6 +31,7 @@ import {
 } from "./constants";
 import { applyPowerUp, choosePowerUpType, cleanupExpiredEffects, isEffectActive } from "./powerups";
 import { chance, createRng, pointToKey, randomEmptyCell } from "./random";
+import { activateDash, tickDashRecovery } from "./skills";
 import { applyUpgradeChoice, buildUpgradeOffers } from "./upgrades";
 import type {
   ActiveSkillState,
@@ -260,6 +261,11 @@ function createActiveSkillState(): ActiveSkillState {
     recoveryEndsAt: null,
     invulnerableUntil: null
   };
+}
+
+function pruneTailHazards(state: GameState, now: number): GameState {
+  const tailHazards = state.tailHazards.filter((hazard) => hazard.expiresAt > now);
+  return tailHazards.length === state.tailHazards.length ? state : { ...state, tailHazards };
 }
 
 function createRogueliteScaffolding(seed?: number): Pick<
@@ -843,6 +849,18 @@ export function chooseUpgrade(state: GameState, upgradeId: string, now: number):
   );
 }
 
+export function useActiveSkill(state: GameState, now: number): GameState {
+  if (state.activeSkill.type !== "dash") return state;
+  const next = activateDash(state, now);
+  if (!state.isGameOver && next.isGameOver && next.mode === "adventure" && next.summary === state.summary) {
+    return {
+      ...next,
+      summary: buildRunSummary(next)
+    };
+  }
+  return next;
+}
+
 export function restart(state: GameState, seed?: number): GameState {
   const runSeed = resolveRunSeed(seed, state.run.seed);
   const fresh = createInitialState(runSeed);
@@ -873,7 +891,10 @@ export function step(state: GameState, now: number): GameState {
         )
       : state;
 
-  state = activeState;
+  state = pruneTailHazards({
+    ...activeState,
+    activeSkill: tickDashRecovery(activeState.activeSkill, now)
+  }, now);
 
   if (state.isGameOver || state.isPaused) return state;
   if (state.mode === "adventure" && state.run.phase === "draft") return state;
@@ -911,8 +932,21 @@ export function step(state: GameState, now: number): GameState {
   const hitEnemy = enemyOccupied.has(pointToKey(nextHead));
   const hitObstacle = obstacleSet.has(pointToKey(nextHead));
   const fatalCollision = hitWall || hitSelf || hitEnemy || hitObstacle;
+  const dashInvulnerable =
+    state.activeSkill.invulnerableUntil !== null && now < state.activeSkill.invulnerableUntil;
 
   if (fatalCollision) {
+    if (dashInvulnerable) {
+      return {
+        ...state,
+        ...comboState,
+        run: collisionRun,
+        direction: moveDirection,
+        queuedDirection: null,
+        effects,
+        tickMs: computeTickMs({ ...state, ...comboState, effects, run: collisionRun }, now)
+      };
+    }
     if (effects.shield) {
       return {
         ...state,
