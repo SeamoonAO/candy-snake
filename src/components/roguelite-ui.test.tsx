@@ -112,6 +112,7 @@ describe("roguelite UI", () => {
         lives={3}
         maxLives={3}
         hurtActive={false}
+        autopilotEnabled={true}
         dashCharges={1}
         dashMaxCharges={1}
         dashCooldownRemainingMs={0}
@@ -121,11 +122,13 @@ describe("roguelite UI", () => {
         onModeChange={() => undefined}
         onPauseToggle={() => undefined}
         onRestart={() => undefined}
+        onToggleAutopilot={() => undefined}
       />
     );
 
     expect(view.container.textContent).toContain("Lives");
     expect(view.container.textContent).toContain("3 / 3");
+    expect(view.container.textContent).toContain("Autopilot");
 
     view.unmount();
   });

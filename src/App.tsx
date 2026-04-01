@@ -10,6 +10,7 @@ export default function App() {
     state,
     bursts,
     started,
+    autopilotEnabled,
     activeTimers,
     draftOffers,
     recentBuild,
@@ -20,12 +21,13 @@ export default function App() {
     startGame,
     pauseOrResume,
     restartGame,
-    chooseDraftOption
+    chooseDraftOption,
+    toggleAutopilot
   } = useSnakeGame();
 
   const keyHints =
     state.mode === "adventure"
-      ? "Keys: Arrow / WASD move, E dash, 1-3 choose draft, Space pause, R restart"
+      ? "Keys: Arrow / WASD move, E dash, Q autopilot, 1-3 choose draft, Space pause, R restart"
       : "Keys: Arrow / WASD move, Space pause, R restart";
 
   return (
@@ -53,6 +55,7 @@ export default function App() {
         lives={state.lives}
         maxLives={state.maxLives}
         hurtActive={state.hurtUntil !== null}
+        autopilotEnabled={autopilotEnabled}
         dashCharges={state.activeSkill.charges}
         dashMaxCharges={state.activeSkill.maxCharges}
         dashCooldownRemainingMs={dashCooldownRemainingMs}
@@ -62,6 +65,7 @@ export default function App() {
         onModeChange={updateGameMode}
         onPauseToggle={pauseOrResume}
         onRestart={restartGame}
+        onToggleAutopilot={toggleAutopilot}
       />
 
       <section className="play-area">

@@ -228,6 +228,94 @@ describe("useSnakeGame", () => {
     adventure.unmount();
   });
 
+  it("lets autopilot drive movement in adventure and manual direction input takes control back", async () => {
+    const originalSetInterval = window.setInterval;
+    const originalClearInterval = window.clearInterval;
+    let tickCallback: (() => void) | null = null;
+
+    Object.defineProperty(window, "setInterval", {
+      configurable: true,
+      value: ((callback: TimerHandler) => {
+        tickCallback = callback as () => void;
+        return 1;
+      }) as typeof window.setInterval
+    });
+    Object.defineProperty(window, "clearInterval", {
+      configurable: true,
+      value: (() => undefined) as typeof window.clearInterval
+    });
+
+    const game = renderUseSnakeGame();
+
+    act(() => {
+      game.current.updateGameMode("adventure");
+      game.current.startGame();
+      game.current.toggleAutopilot();
+    });
+
+    expect(game.current.autopilotEnabled).toBe(true);
+    const headBeforeTick = game.current.state.snake[0];
+
+    act(() => {
+      tickCallback?.();
+    });
+
+    expect(game.current.state.snake[0]).not.toEqual(headBeforeTick);
+
+    game.press("ArrowUp", "ArrowUp");
+
+    expect(game.current.autopilotEnabled).toBe(false);
+    expect(game.current.state.queuedDirection).toBe("up");
+
+    game.unmount();
+    Object.defineProperty(window, "setInterval", { configurable: true, value: originalSetInterval });
+    Object.defineProperty(window, "clearInterval", { configurable: true, value: originalClearInterval });
+  });
+
+  it("lets autopilot consume an open draft automatically", () => {
+    const originalSetInterval = window.setInterval;
+    const originalClearInterval = window.clearInterval;
+    let tickCallback: (() => void) | null = null;
+
+    Object.defineProperty(window, "setInterval", {
+      configurable: true,
+      value: ((callback: TimerHandler) => {
+        tickCallback = callback as () => void;
+        return 1;
+      }) as typeof window.setInterval
+    });
+    Object.defineProperty(window, "clearInterval", {
+      configurable: true,
+      value: (() => undefined) as typeof window.clearInterval
+    });
+
+    const game = renderUseSnakeGame();
+
+    act(() => {
+      game.current.updateGameMode("adventure");
+      game.current.startGame();
+      game.current.toggleAutopilot();
+    });
+
+    game.setDraftOpen();
+    game.rerender();
+
+    expect(game.current.state.run.phase).toBe("draft");
+    expect(game.current.autopilotEnabled).toBe(true);
+
+    act(() => {
+      tickCallback?.();
+    });
+
+    expect(game.current.state.run.phase).toBe("segment");
+    expect(game.current.state.run.chosenUpgradeIds).toContain("overclocked-metabolism");
+    expect(game.current.autopilotEnabled).toBe(true);
+
+    game.unmount();
+    Object.defineProperty(window, "setInterval", { configurable: true, value: originalSetInterval });
+    Object.defineProperty(window, "clearInterval", { configurable: true, value: originalClearInterval });
+  });
+
   it("restarts both endless and drafted adventure runs from the keyboard", () => {
     const endless = renderUseSnakeGame();
 

@@ -31,6 +31,7 @@ interface Props {
   lives: number;
   maxLives: number;
   hurtActive: boolean;
+  autopilotEnabled: boolean;
   dashCharges: number;
   dashMaxCharges: number;
   dashCooldownRemainingMs: number;
@@ -40,6 +41,7 @@ interface Props {
   onModeChange: (mode: GameMode) => void;
   onPauseToggle: () => void;
   onRestart: () => void;
+  onToggleAutopilot: () => void;
 }
 
 function toSeconds(ms: number): string {
@@ -69,6 +71,7 @@ export function HudPanel({
   lives,
   maxLives,
   hurtActive,
+  autopilotEnabled,
   dashCharges,
   dashMaxCharges,
   dashCooldownRemainingMs,
@@ -77,7 +80,8 @@ export function HudPanel({
   onEnemyCountChange,
   onModeChange,
   onPauseToggle,
-  onRestart
+  onRestart,
+  onToggleAutopilot
 }: Props) {
   const dashReady = dashCharges > 0;
   const dashHint = dashReady ? "Dash ready on E" : `Cooldown ${toSeconds(dashCooldownRemainingMs)}s`;
@@ -164,6 +168,20 @@ export function HudPanel({
                 ))}
               </div>
             </div>
+            <div className={`life-card ${autopilotEnabled ? "autopilot" : ""}`}>
+              <div>
+                <span className="dash-label">Autopilot</span>
+                <strong>{autopilotEnabled ? "ON" : "OFF"}</strong>
+              </div>
+              <div className="life-pips" aria-label={`Autopilot ${autopilotEnabled ? "on" : "off"}`}>
+                <span className={autopilotEnabled ? "life-pip full" : "life-pip empty"}>
+                  {autopilotEnabled ? "AUTO" : "MANUAL"}
+                </span>
+              </div>
+            </div>
+            <button type="button" className="seg-btn" onClick={onToggleAutopilot}>
+              {autopilotEnabled ? "Disable Autopilot" : "Enable Autopilot"}
+            </button>
             <div className="dash-card">
               <div>
                 <span className="dash-label">Dash</span>
@@ -262,7 +280,7 @@ export function HudPanel({
 
       <p className="control-copy">
         {mode === "adventure"
-          ? "Move with Arrow / WASD. Press E to dash, 1-3 to draft, Space to pause, R to reset."
+          ? "Move with Arrow / WASD. Press E to dash, Q to toggle autopilot, 1-3 to draft, Space to pause, R to reset."
           : "Move with Arrow / WASD. Press Space to pause and R to reset."}
       </p>
 

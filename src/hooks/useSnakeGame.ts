@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BOARD_HEIGHT, BOARD_WIDTH } from "../game/constants";
 import {
   chooseUpgrade,
   createInitialState,
@@ -12,6 +13,7 @@ import {
   useActiveSkill
 } from "../game/engine";
 import { getEffectRemainingMs } from "../game/powerups";
+import { pointToKey } from "../game/random";
 import { resolveUpgradeOffers, UPGRADE_DEFS } from "../game/upgrades";
 import type { Direction, GameMode, GameState } from "../game/types";
 import { loadStats, saveStats } from "../storage/stats";
@@ -46,19 +48,96 @@ const KEY_TO_DRAFT_INDEX: Record<string, number> = {
 };
 
 const UPGRADE_LABELS = new Map(UPGRADE_DEFS.map((upgrade) => [upgrade.id, upgrade.label]));
+const OPPOSITE_DIRECTION: Record<Direction, Direction> = {
+  up: "down",
+  down: "up",
+  left: "right",
+  right: "left"
+};
+
+function oppositeDirection(direction: Direction): Direction {
+  return OPPOSITE_DIRECTION[direction];
+}
+
+function chooseAutopilotDirection(state: GameState): Direction | null {
+  const head = state.snake[0];
+  const currentDirection = state.queuedDirection ?? state.direction;
+  const blocked = new Set<string>([
+    ...state.obstacles,
+    ...state.enemies.filter((enemy) => enemy.alive).flatMap((enemy) => enemy.snake),
+    ...state.snake.slice(0, -1)
+  ].map(pointToKey));
+  const foodKeys = new Set(state.foods.map(pointToKey));
+  const candidates: Array<{ dir: Direction; x: number; y: number }> = [
+    { dir: "up", x: head.x, y: head.y - 1 },
+    { dir: "down", x: head.x, y: head.y + 1 },
+    { dir: "left", x: head.x - 1, y: head.y },
+    { dir: "right", x: head.x + 1, y: head.y }
+  ];
+  const queue = [{ x: head.x, y: head.y }];
+  const seen = new Set<string>([pointToKey(head)]);
+  const firstStep = new Map<string, Direction>();
+
+  while (queue.length > 0) {
+    const point = queue.shift();
+    if (!point) break;
+    const pointKey = pointToKey(point);
+    if (foodKeys.has(pointKey) && pointKey !== pointToKey(head)) {
+      return firstStep.get(pointKey) ?? null;
+    }
+
+    for (const next of [
+      { dir: "up" as const, x: point.x, y: point.y - 1 },
+      { dir: "down" as const, x: point.x, y: point.y + 1 },
+      { dir: "left" as const, x: point.x - 1, y: point.y },
+      { dir: "right" as const, x: point.x + 1, y: point.y }
+    ]) {
+      if (next.x < 0 || next.x >= BOARD_WIDTH || next.y < 0 || next.y >= BOARD_HEIGHT) continue;
+      const nextKey = pointToKey(next);
+      if (seen.has(nextKey) || blocked.has(nextKey)) continue;
+      if (
+        point.x === head.x &&
+        point.y === head.y &&
+        next.dir === oppositeDirection(currentDirection)
+      ) {
+        continue;
+      }
+      seen.add(nextKey);
+      firstStep.set(
+        nextKey,
+        point.x === head.x && point.y === head.y ? next.dir : (firstStep.get(pointKey) ?? next.dir)
+      );
+      queue.push(next);
+    }
+  }
+
+  for (const next of candidates) {
+    if (next.dir === oppositeDirection(currentDirection)) continue;
+    if (next.x < 0 || next.x >= BOARD_WIDTH || next.y < 0 || next.y >= BOARD_HEIGHT) continue;
+    if (!blocked.has(pointToKey(next))) return next.dir;
+  }
+
+  return null;
+}
 
 export function useSnakeGame() {
   const [state, setState] = useState<GameState>(() => createInitialState());
   const [bursts, setBursts] = useState<BurstEffect[]>([]);
   const [started, setStarted] = useState(false);
+  const [autopilotEnabled, setAutopilotEnabled] = useState(false);
   const processedGameOverRef = useRef(false);
   const startedRef = useRef(false);
+  const autopilotRef = useRef(false);
   const stateRef = useRef(state);
   const burstSerialRef = useRef(0);
 
   useEffect(() => {
     startedRef.current = started;
   }, [started]);
+
+  useEffect(() => {
+    autopilotRef.current = autopilotEnabled;
+  }, [autopilotEnabled]);
 
   useEffect(() => {
     stateRef.current = state;
@@ -75,11 +154,24 @@ export function useSnakeGame() {
 
   useEffect(() => {
     const draftPaused = state.run.phase === "draft";
-    if (state.isPaused || state.isGameOver || draftPaused) return undefined;
+    if (state.isPaused || state.isGameOver) return undefined;
     const timer = window.setInterval(() => {
       const now = Date.now();
       setState((prev) => {
-        const next = step(prev, now);
+        if (autopilotEnabled && prev.mode === "adventure" && prev.run.phase === "draft" && prev.run.upgradeDraft) {
+          const [upgradeId] = prev.run.upgradeDraft.offeredIds;
+          return upgradeId ? chooseUpgrade(prev, upgradeId, now) : prev;
+        }
+        if (draftPaused) return prev;
+
+        const guided =
+          autopilotEnabled && prev.mode === "adventure"
+            ? (() => {
+                const direction = chooseAutopilotDirection(prev);
+                return direction ? turn(prev, direction) : prev;
+              })()
+            : prev;
+        const next = step(guided, now);
         const nextHead = next.snake[0];
         const consumedFood = next.score > prev.score;
         const consumedPowerup =
@@ -113,7 +205,7 @@ export function useSnakeGame() {
     return () => {
       window.clearInterval(timer);
     };
-  }, [state.isPaused, state.isGameOver, state.run.phase, state.tickMs]);
+  }, [autopilotEnabled, state.isPaused, state.isGameOver, state.run.phase, state.tickMs]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -147,6 +239,7 @@ export function useSnakeGame() {
 
       if (direction) {
         event.preventDefault();
+        if (autopilotRef.current) setAutopilotEnabled(false);
         setState((prev) => {
           let next = turn(prev, direction);
           if (!startedRef.current && !prev.isGameOver) {
@@ -167,6 +260,13 @@ export function useSnakeGame() {
         return;
       }
 
+      if (event.key.toLowerCase() === "q") {
+        if (currentState.mode !== "adventure") return;
+        event.preventDefault();
+        setAutopilotEnabled((prev) => !prev);
+        return;
+      }
+
       if (event.key.toLowerCase() === "e") {
         if (currentState.mode !== "adventure") return;
         event.preventDefault();
@@ -178,6 +278,7 @@ export function useSnakeGame() {
         event.preventDefault();
         setState((prev) => restart(prev));
         setStarted(false);
+        setAutopilotEnabled(false);
         processedGameOverRef.current = false;
         setBursts([]);
       }
@@ -242,6 +343,7 @@ export function useSnakeGame() {
   const restartGame = () => {
     setState((prev) => restart(prev));
     setStarted(false);
+    setAutopilotEnabled(false);
     processedGameOverRef.current = false;
     setBursts([]);
   };
@@ -256,16 +358,22 @@ export function useSnakeGame() {
 
   const updateGameMode = (mode: GameMode) => {
     setState((prev) => setGameMode(prev, mode));
+    if (mode !== "adventure") setAutopilotEnabled(false);
   };
 
   const chooseDraftOption = (upgradeId: string) => {
     setState((prev) => chooseUpgrade(prev, upgradeId, Date.now()));
   };
 
+  const toggleAutopilot = () => {
+    setAutopilotEnabled((prev) => !prev);
+  };
+
   return {
     state,
     bursts,
     started,
+    autopilotEnabled,
     activeTimers,
     draftOffers,
     recentBuild,
@@ -276,6 +384,7 @@ export function useSnakeGame() {
     startGame,
     pauseOrResume,
     restartGame,
-    chooseDraftOption
+    chooseDraftOption,
+    toggleAutopilot
   };
 }
