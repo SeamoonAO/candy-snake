@@ -297,3 +297,36 @@ The next step after spec approval is an implementation plan covering:
 - Dash and mutation rules
 - HUD and overlay changes
 - Test updates
+
+## 15. Post-MVP Backlog Candidates
+
+These items are intentionally deferred from the first roguelite MVP, but they are strong follow-up candidates because they improve readability, payoff, and player control without requiring a full systems rewrite.
+
+### 15.1 Combat Kill Payoff
+
+Enemy snake kills should feel rewarding instead of visually flat.
+
+The next round should evaluate a kill-payoff layer that combines:
+- A clear board celebration effect when an enemy snake dies
+- Direct score gain on kill
+- Optional small combat-side reward such as combo extension or dash refund
+
+This is especially valuable for:
+- Dash Hunter runs
+- Glutton / swallow builds
+- Any future kill-driven upgrade branch
+
+The first version of this follow-up should prioritize readability and reward feedback over adding a deep new combat subsystem.
+
+### 15.2 Mode Entry Defaults
+
+The current game opens in `Adventure` by default.
+
+This should be revisited in the next round because:
+- `Endless` remains the simplest onboarding path
+- `Adventure` now has more systems, overlays, and run-state concepts
+- Returning players may want a clearer default or a remembered last-used mode
+
+Recommended backlog framing:
+- Evaluate switching the default startup mode back to `Endless`
+- Consider persisting the player’s last selected mode as a later polish step
