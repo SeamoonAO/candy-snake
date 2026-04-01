@@ -6,6 +6,8 @@ export type EnemyPersonality = "greedy" | "hunter" | "careful";
 
 export type GameMode = "endless" | "adventure";
 
+export type RunPhase = "segment" | "draft";
+
 export type PowerUpType =
   | "SPEED_UP"
   | "SLOW_DOWN"
@@ -37,6 +39,50 @@ export interface EnemySnake {
   personality: EnemyPersonality;
 }
 
+export interface UpgradeDraft {
+  offeredIds: string[];
+  source: "normal" | "elite" | "collapseBonus";
+}
+
+export interface ActiveSkillState {
+  type: "dash";
+  charges: number;
+  maxCharges: number;
+  cooldownMs: number;
+  recoveryEndsAt: number | null;
+  invulnerableUntil: number | null;
+}
+
+export interface RogueliteRunState {
+  seed: number;
+  rollCursor: number;
+  segmentIndex: number;
+  segmentEndsAt: number | null;
+  phase: RunPhase;
+  eliteSegment: boolean;
+  collapseStarted: boolean;
+  upgradeDraft: UpgradeDraft | null;
+  chosenUpgradeIds: string[];
+  highestCombo: number;
+}
+
+export interface BuildModifiers {
+  comboWindowBonusMs: number;
+  dashDistanceBonus: number;
+  canSwallowShorterEnemies: boolean;
+  hasPhaseScales: boolean;
+}
+
+export interface TailHazard {
+  position: Point;
+  expiresAt: number;
+}
+
+export interface RunSummary {
+  clearedSegments: number;
+  score: number;
+}
+
 export interface GameState {
   snake: Point[];
   enemies: EnemySnake[];
@@ -55,6 +101,11 @@ export interface GameState {
   comboCount: number;
   comboMultiplier: number;
   comboExpiresAt: number | null;
+  run: RogueliteRunState;
+  build: BuildModifiers;
+  tailHazards: TailHazard[];
+  activeSkill: ActiveSkillState;
+  summary: RunSummary | null;
   bestScore: number;
   gamesPlayed: number;
   tickMs: number;

@@ -19,6 +19,14 @@ export const SPEED_STEP_MS = 5;
 export const MIN_BASE_TICK_MS = 75;
 export const COMBO_WINDOW_MS = 3_500;
 export const MAX_COMBO_MULTIPLIER = 5;
+export const SEGMENT_DURATION_MS = 35_000;
+export const TARGET_SEGMENTS_PER_RUN = 14;
+export const ELITE_SEGMENT_INTERVAL = 3;
+export const COLLAPSE_START_SEGMENT = 9;
+export const DASH_INITIAL_CHARGES = 1;
+export const DASH_MAX_CHARGES = 1;
+export const DASH_COOLDOWN_MS = 9_000;
+export const DASH_DISTANCE = 3;
 
 export const POWERUP_SPAWN_CHANCE = 0.08;
 export const POWERUP_TTL_MS = 8_000;

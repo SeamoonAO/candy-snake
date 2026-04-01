@@ -3,8 +3,13 @@ import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
   COMBO_WINDOW_MS,
+  COLLAPSE_START_SEGMENT,
+  DASH_COOLDOWN_MS,
+  DASH_INITIAL_CHARGES,
+  DASH_MAX_CHARGES,
   DEFAULT_ENEMY_COUNT,
   DEFAULT_FOOD_COUNT,
+  ELITE_SEGMENT_INTERVAL,
   ENEMY_INITIAL_LENGTH,
   INITIAL_SNAKE_LENGTH,
   INITIAL_TICK_MS,
@@ -17,17 +22,21 @@ import {
   POWERUP_SPAWN_CHANCE,
   POWERUP_TTL_MS,
   SCORE_PER_SPEED_STEP,
-  SPEED_STEP_MS
+  SPEED_STEP_MS,
+  TARGET_SEGMENTS_PER_RUN
 } from "./constants";
 import { applyPowerUp, choosePowerUpType, cleanupExpiredEffects, isEffectActive } from "./powerups";
 import { chance, createRng, pointToKey, randomEmptyCell } from "./random";
 import type {
+  ActiveSkillState,
+  BuildModifiers,
   Direction,
   EnemyPersonality,
   EnemySnake,
   GameMode,
   GameState,
-  Point
+  Point,
+  RogueliteRunState
 } from "./types";
 
 const DIRECTION_VECTORS: Record<Direction, Point> = {
@@ -169,13 +178,19 @@ function getLevelGoal(level: number): number {
   return lastGoal + (level - ADVENTURE_LEVEL_GOALS.length) * 28;
 }
 
-function getLevelForScore(score: number): { level: number; goal: number } {
-  let level = 1;
-  while (score >= getLevelGoal(level)) level += 1;
-  return { level, goal: getLevelGoal(level) };
+function createAdventureLevelState(segmentIndex: number): Pick<GameState, "currentLevel" | "levelGoal" | "obstacles"> {
+  return {
+    currentLevel: segmentIndex,
+    levelGoal: TARGET_SEGMENTS_PER_RUN,
+    obstacles: buildObstaclePattern(segmentIndex)
+  };
 }
 
-function createLevelState(mode: GameMode, score: number): Pick<GameState, "currentLevel" | "levelGoal" | "obstacles"> {
+function createLevelState(
+  mode: GameMode,
+  _score: number,
+  segmentIndex = 1
+): Pick<GameState, "currentLevel" | "levelGoal" | "obstacles"> {
   if (mode === "endless") {
     return {
       currentLevel: 1,
@@ -183,11 +198,55 @@ function createLevelState(mode: GameMode, score: number): Pick<GameState, "curre
       obstacles: []
     };
   }
-  const { level, goal } = getLevelForScore(score);
+  return createAdventureLevelState(segmentIndex);
+}
+
+function createRunState(seed = 0): RogueliteRunState {
+  const segmentIndex = 1;
   return {
-    currentLevel: level,
-    levelGoal: goal,
-    obstacles: buildObstaclePattern(level)
+    seed,
+    rollCursor: 0,
+    segmentIndex,
+    segmentEndsAt: null,
+    phase: "segment",
+    eliteSegment: segmentIndex % ELITE_SEGMENT_INTERVAL === 0,
+    collapseStarted: segmentIndex >= COLLAPSE_START_SEGMENT,
+    upgradeDraft: null,
+    chosenUpgradeIds: [],
+    highestCombo: 0
+  };
+}
+
+function createBuildModifiers(): BuildModifiers {
+  return {
+    comboWindowBonusMs: 0,
+    dashDistanceBonus: 0,
+    canSwallowShorterEnemies: false,
+    hasPhaseScales: false
+  };
+}
+
+function createActiveSkillState(): ActiveSkillState {
+  return {
+    type: "dash",
+    charges: DASH_INITIAL_CHARGES,
+    maxCharges: DASH_MAX_CHARGES,
+    cooldownMs: DASH_COOLDOWN_MS,
+    recoveryEndsAt: null,
+    invulnerableUntil: null
+  };
+}
+
+function createRogueliteScaffolding(seed?: number): Pick<
+  GameState,
+  "run" | "build" | "tailHazards" | "activeSkill" | "summary"
+> {
+  return {
+    run: createRunState(seed ?? 0),
+    build: createBuildModifiers(),
+    tailHazards: [],
+    activeSkill: createActiveSkillState(),
+    summary: null
   };
 }
 
@@ -445,6 +504,9 @@ function getComboMultiplier(comboCount: number): number {
 }
 
 function applyAdventureProgress(state: GameState, score: number): Pick<GameState, "currentLevel" | "levelGoal" | "obstacles"> {
+  if (state.mode === "adventure") {
+    return createLevelState(state.mode, score, state.run.segmentIndex);
+  }
   return createLevelState(state.mode, score);
 }
 
@@ -469,6 +531,7 @@ export function createInitialState(seed?: number): GameState {
 
   const mode: GameMode = "endless";
   const levelState = createLevelState(mode, 0);
+  const roguelite = createRogueliteScaffolding(seed);
   const playerOccupied = new Set<string>(snake.map(pointToKey));
   addPoints(playerOccupied, levelState.obstacles);
   const enemyCount = DEFAULT_ENEMY_COUNT;
@@ -498,6 +561,7 @@ export function createInitialState(seed?: number): GameState {
     comboCount: 0,
     comboMultiplier: 1,
     comboExpiresAt: null,
+    ...roguelite,
     bestScore: 0,
     gamesPlayed: 0,
     tickMs: INITIAL_TICK_MS,
@@ -550,7 +614,9 @@ export function setEnemyCount(state: GameState, nextCount: number, seed?: number
 
 export function setGameMode(state: GameState, mode: GameMode, seed?: number): GameState {
   if (state.mode === mode) return state;
-  const levelState = createLevelState(mode, state.score);
+  const roguelite = mode === "adventure" ? createRogueliteScaffolding(seed) : null;
+  const segmentIndex = roguelite?.run.segmentIndex ?? state.run.segmentIndex;
+  const levelState = createLevelState(mode, state.score, segmentIndex);
   const safeObstacles = sanitizeObstacles(levelState.obstacles, [
     ...state.snake,
     ...state.foods,
@@ -562,6 +628,7 @@ export function setGameMode(state: GameState, mode: GameMode, seed?: number): Ga
   const enemies = spawnEnemies(state.enemyCount, occupied, seed);
   const next = {
     ...state,
+    ...(roguelite ?? {}),
     mode,
     currentLevel: levelState.currentLevel,
     levelGoal: levelState.levelGoal,

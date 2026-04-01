@@ -6,7 +6,8 @@ import {
   DEFAULT_ENEMY_COUNT,
   DEFAULT_FOOD_COUNT,
   INITIAL_TICK_MS,
-  MIN_BASE_TICK_MS
+  MIN_BASE_TICK_MS,
+  TARGET_SEGMENTS_PER_RUN
 } from "./constants";
 import {
   createInitialState,
@@ -295,7 +296,18 @@ describe("engine", () => {
     expect(state.currentLevel).toBe(1);
   });
 
-  it("progresses adventure levels as score grows", () => {
+  it("initializes adventure runs with segment state and dash skill", () => {
+    const state = setGameMode(createInitialState(), "adventure", 1);
+
+    expect(state.run.segmentIndex).toBe(1);
+    expect(state.run.phase).toBe("segment");
+    expect(state.run.upgradeDraft).toBeNull();
+    expect(state.activeSkill.type).toBe("dash");
+    expect(state.activeSkill.charges).toBe(1);
+    expect(state.summary).toBeNull();
+  });
+
+  it("keeps adventure segment metadata stable before progression is implemented", () => {
     vi.spyOn(Math, "random").mockImplementation(() => 0.9);
     const base = setGameMode(createInitialState(), "adventure", 1);
     const state = runningState({
@@ -304,7 +316,9 @@ describe("engine", () => {
       foods: [{ x: base.snake[0].x + 1, y: base.snake[0].y }, ...base.foods.slice(1)]
     });
     const next = step(state, 1000);
-    expect(next.currentLevel).toBe(2);
+    expect(next.currentLevel).toBe(1);
+    expect(next.levelGoal).toBe(TARGET_SEGMENTS_PER_RUN);
+    expect(next.run.segmentIndex).toBe(1);
     expect(next.obstacles.length).toBeGreaterThan(0);
     vi.restoreAllMocks();
   });
