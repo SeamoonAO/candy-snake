@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  chooseUpgrade,
   createInitialState,
   restart,
   setEnemyCount,
@@ -36,17 +37,28 @@ const KEY_TO_DIRECTION: Record<string, Direction> = {
   D: "right"
 };
 
+const KEY_TO_DRAFT_INDEX: Record<string, number> = {
+  "1": 0,
+  "2": 1,
+  "3": 2
+};
+
 export function useSnakeGame() {
   const [state, setState] = useState<GameState>(() => createInitialState());
   const [bursts, setBursts] = useState<BurstEffect[]>([]);
   const [started, setStarted] = useState(false);
   const processedGameOverRef = useRef(false);
   const startedRef = useRef(false);
+  const stateRef = useRef(state);
   const burstSerialRef = useRef(0);
 
   useEffect(() => {
     startedRef.current = started;
   }, [started]);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   useEffect(() => {
     const stats = loadStats();
@@ -95,7 +107,28 @@ export function useSnakeGame() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.repeat) return;
+      const currentState = stateRef.current;
       const direction = KEY_TO_DIRECTION[event.key];
+      const draftIndex = KEY_TO_DRAFT_INDEX[event.key];
+
+      if (currentState.run.phase === "draft" && currentState.run.upgradeDraft) {
+        if (draftIndex !== undefined) {
+          event.preventDefault();
+          setState((prev) => {
+            if (prev.run.phase !== "draft" || !prev.run.upgradeDraft) return prev;
+            const upgradeId = prev.run.upgradeDraft.offeredIds[draftIndex];
+            if (!upgradeId) return prev;
+            return chooseUpgrade(prev, upgradeId, Date.now());
+          });
+          return;
+        }
+
+        if (direction) {
+          event.preventDefault();
+          return;
+        }
+      }
+
       if (direction) {
         event.preventDefault();
         setState((prev) => {
