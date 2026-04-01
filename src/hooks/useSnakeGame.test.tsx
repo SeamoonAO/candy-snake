@@ -29,6 +29,11 @@ function renderUseSnakeGame() {
       }
       return latest;
     },
+    rerender() {
+      act(() => {
+        root.render(<Harness />);
+      });
+    },
     press(key: string, code: string) {
       act(() => {
         window.dispatchEvent(new KeyboardEvent("keydown", { key, code, bubbles: true }));
@@ -89,6 +94,27 @@ describe("useSnakeGame", () => {
     game.unmount();
   });
 
+  it("accepts both Arrow keys and WASD movement in endless mode", () => {
+    const game = renderUseSnakeGame();
+
+    act(() => {
+      game.current.startGame();
+    });
+
+    game.press("w", "KeyW");
+    expect(game.current.state.queuedDirection).toBe("up");
+
+    game.setState({
+      ...game.current.state,
+      queuedDirection: null
+    });
+
+    game.press("ArrowUp", "ArrowUp");
+    expect(game.current.state.queuedDirection).toBe("up");
+
+    game.unmount();
+  });
+
   it("uses draft number keys instead of movement controls while an adventure draft is open", () => {
     const game = renderUseSnakeGame();
 
@@ -139,6 +165,32 @@ describe("useSnakeGame", () => {
     expect(game.current.state.run.phase).toBe("segment");
     expect(game.current.state.isPaused).toBe(false);
     expect(game.current.state.run.chosenUpgradeIds).toContain("sugar-debt");
+
+    game.unmount();
+  });
+
+  it("ignores invalid upgrade index keys while an adventure draft is open", () => {
+    const game = renderUseSnakeGame();
+
+    act(() => {
+      game.current.updateGameMode("adventure");
+      game.current.startGame();
+    });
+
+    game.setDraftOpen();
+
+    const chosenBefore = [...game.current.state.run.chosenUpgradeIds];
+
+    game.press("4", "Digit4");
+
+    expect(game.current.state.run.phase).toBe("draft");
+    expect(game.current.state.run.upgradeDraft?.offeredIds).toEqual([
+      "overclocked-metabolism",
+      "sugar-debt",
+      "dash-line"
+    ]);
+    expect(game.current.state.run.chosenUpgradeIds).toEqual(chosenBefore);
+    expect(game.current.state.isPaused).toBe(false);
 
     game.unmount();
   });
@@ -209,5 +261,52 @@ describe("useSnakeGame", () => {
     expect(adventure.current.state.run.upgradeDraft).toBeNull();
 
     adventure.unmount();
+  });
+
+  it("clears hook-level draft and build state when switching from drafted adventure back to endless", () => {
+    const game = renderUseSnakeGame();
+
+    act(() => {
+      game.current.updateGameMode("adventure");
+      game.current.startGame();
+    });
+
+    game.setState({
+      ...game.current.state,
+      mode: "adventure",
+      run: {
+        ...game.current.state.run,
+        phase: "draft",
+        upgradeDraft: {
+          offeredIds: ["overclocked-metabolism", "sugar-debt", "dash-line"],
+          source: "elite"
+        },
+        chosenUpgradeIds: ["overclocked-metabolism", "dash-line"]
+      },
+      summary: {
+        segmentReached: 4,
+        clearedSegments: 3,
+        highestCombo: 5,
+        chosenUpgradeIds: ["overclocked-metabolism", "dash-line"],
+        score: 18
+      }
+    });
+
+    game.rerender();
+
+    expect(game.current.draftOffers).toHaveLength(3);
+    expect(game.current.recentBuild).toHaveLength(2);
+
+    act(() => {
+      game.current.updateGameMode("endless");
+    });
+
+    expect(game.current.state.mode).toBe("endless");
+    expect(game.current.state.run.upgradeDraft).toBeNull();
+    expect(game.current.state.summary).toBeNull();
+    expect(game.current.draftOffers).toEqual([]);
+    expect(game.current.recentBuild).toEqual([]);
+
+    game.unmount();
   });
 });

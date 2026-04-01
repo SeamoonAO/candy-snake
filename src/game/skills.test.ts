@@ -105,4 +105,20 @@ describe("skills", () => {
     expect(recovered.charges).toBe(1);
     expect(recovered.recoveryEndsAt).toBeNull();
   });
+
+  it("does nothing when dash is triggered with zero charges", () => {
+    const state = makeAdventureState({
+      activeSkill: {
+        ...makeAdventureState().activeSkill,
+        charges: 0,
+        recoveryEndsAt: 5000
+      }
+    });
+
+    const next = activateDash(state, 1000);
+
+    expect(next).toStrictEqual(state);
+    expect(next.activeSkill.charges).toBe(0);
+    expect(next.snake).toEqual(state.snake);
+  });
 });

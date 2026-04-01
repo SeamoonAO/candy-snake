@@ -317,6 +317,22 @@ describe("engine", () => {
     expect(state.summary).toBeNull();
   });
 
+  it("keeps endless mode out of upgrade drafts even if run timing data is present", () => {
+    const state = runningState({
+      ...createInitialState(5),
+      run: {
+        ...createInitialState(5).run,
+        segmentEndsAt: 1000
+      }
+    });
+
+    const next = step(state, 1001);
+
+    expect(next.mode).toBe("endless");
+    expect(next.run.phase).toBe("segment");
+    expect(next.run.upgradeDraft).toBeNull();
+  });
+
   it("preserves the configured enemy count when switching to adventure", () => {
     const state = setEnemyCount(createInitialState(), 3);
     const next = setGameMode(state, "adventure", 1);
@@ -396,6 +412,26 @@ describe("engine", () => {
     expect(next.run.upgradeDraft).toBeNull();
     expect(next.isPaused).toBe(false);
     expect(next.run.chosenUpgradeIds).toContain("combo-window-up");
+  });
+
+  it("uses collapse bonus rewards on non-elite collapse drafts", () => {
+    const base = makeAdventureState();
+    const state = makeAdventureState({
+      run: {
+        ...base.run,
+        segmentIndex: 10,
+        segmentEndsAt: 1000,
+        phase: "segment",
+        eliteSegment: false,
+        collapseStarted: true,
+        upgradeDraft: null
+      }
+    });
+
+    const next = step(state, 1001);
+
+    expect(next.run.phase).toBe("draft");
+    expect(next.run.upgradeDraft?.source).toBe("collapseBonus");
   });
 
   it("keeps overclocked metabolism faster than a neutral upgrade after resuming adventure", () => {
@@ -520,6 +556,93 @@ describe("engine", () => {
       invulnerableUntil: null
     });
     expect(next.summary).toBeNull();
+  });
+
+  it("clears draft and summary state on restart", () => {
+    const base = setGameMode(createInitialState(7), "adventure", 7);
+    const state = {
+      ...base,
+      score: 12,
+      isPaused: false,
+      run: {
+        ...base.run,
+        phase: "draft" as const,
+        upgradeDraft: {
+          offeredIds: ["combo-window-up", "dash-line", "phase-scales"],
+          source: "elite" as const
+        },
+        chosenUpgradeIds: ["combo-window-up"]
+      },
+      summary: {
+        segmentReached: 4,
+        clearedSegments: 3,
+        score: 12,
+        highestCombo: 2,
+        chosenUpgradeIds: ["combo-window-up"]
+      }
+    };
+
+    const next = restart(state, 7);
+
+    expect(next.score).toBe(0);
+    expect(next.run.phase).toBe("segment");
+    expect(next.run.upgradeDraft).toBeNull();
+    expect(next.run.chosenUpgradeIds).toEqual([]);
+    expect(next.summary).toBeNull();
+  });
+
+  it("reaches at least three distinct adventure pressure profiles across the run", () => {
+    const early = step(
+      makeAdventureState({
+        isPaused: true,
+        enemyCount: 3,
+        enemies: [],
+        run: {
+          ...makeAdventureState().run,
+          segmentIndex: 1,
+          eliteSegment: false,
+          collapseStarted: false,
+          segmentEndsAt: null
+        }
+      }),
+      1000
+    );
+    const elite = step(
+      makeAdventureState({
+        isPaused: true,
+        enemyCount: 3,
+        enemies: [],
+        run: {
+          ...makeAdventureState().run,
+          segmentIndex: 3,
+          eliteSegment: true,
+          collapseStarted: false,
+          segmentEndsAt: null
+        }
+      }),
+      1000
+    );
+    const late = step(
+      makeAdventureState({
+        isPaused: true,
+        enemyCount: 3,
+        enemies: [],
+        run: {
+          ...makeAdventureState().run,
+          segmentIndex: 6,
+          eliteSegment: true,
+          collapseStarted: false,
+          segmentEndsAt: null
+        }
+      }),
+      1000
+    );
+
+    const profiles = new Set(
+      [early, elite, late].map((state) => state.enemies.map((enemy) => enemy.personality).join(","))
+    );
+
+    expect(profiles.size).toBeGreaterThanOrEqual(3);
   });
 
   it("replaces score-threshold adventure progression with run-segment pressure", () => {
