@@ -6,11 +6,11 @@ import {
   DEFAULT_ENEMY_COUNT,
   DEFAULT_FOOD_COUNT,
   INITIAL_TICK_MS,
-  MIN_BASE_TICK_MS,
-  TARGET_SEGMENTS_PER_RUN
+  MIN_BASE_TICK_MS
 } from "./constants";
 import {
   createInitialState,
+  restart,
   setEnemyCount,
   setFoodCount,
   setGameMode,
@@ -307,7 +307,93 @@ describe("engine", () => {
     expect(state.summary).toBeNull();
   });
 
-  it("keeps adventure segment metadata stable before progression is implemented", () => {
+  it("creates a non-zero run seed and preserves it through mode transitions and restart", () => {
+    const initial = createInitialState();
+    const seed = initial.run.seed;
+
+    expect(seed).toBeGreaterThan(0);
+
+    const adventure = setGameMode(initial, "adventure");
+    expect(adventure.run.seed).toBe(seed);
+
+    const endless = setGameMode(adventure, "endless");
+    expect(endless.run.seed).toBe(seed);
+
+    const restarted = restart(adventure);
+    expect(restarted.run.seed).toBe(seed);
+  });
+
+  it("clears roguelite state when switching back to endless", () => {
+    const base = setGameMode(createInitialState(7), "adventure", 7);
+    const draftState: GameState = {
+      ...base,
+      run: {
+        ...base.run,
+        rollCursor: 2,
+        segmentEndsAt: 1234,
+        phase: "draft",
+        eliteSegment: true,
+        collapseStarted: true,
+        upgradeDraft: {
+          offeredIds: ["alpha", "beta"],
+          source: "elite"
+        },
+        chosenUpgradeIds: ["starter"],
+        highestCombo: 4
+      },
+      build: {
+        comboWindowBonusMs: 200,
+        dashDistanceBonus: 1,
+        canSwallowShorterEnemies: true,
+        hasPhaseScales: true
+      },
+      tailHazards: [{ position: { x: 3, y: 4 }, expiresAt: 999 }],
+      activeSkill: {
+        ...base.activeSkill,
+        charges: 0,
+        recoveryEndsAt: 500,
+        invulnerableUntil: 700
+      },
+      summary: {
+        clearedSegments: 2,
+        score: 99
+      }
+    };
+
+    const next = setGameMode(draftState, "endless");
+
+    expect(next.mode).toBe("endless");
+    expect(next.run).toEqual({
+      seed: 7,
+      rollCursor: 0,
+      segmentIndex: 1,
+      segmentEndsAt: null,
+      phase: "segment",
+      eliteSegment: false,
+      collapseStarted: false,
+      upgradeDraft: null,
+      chosenUpgradeIds: [],
+      highestCombo: 0
+    });
+    expect(next.build).toEqual({
+      comboWindowBonusMs: 0,
+      dashDistanceBonus: 0,
+      canSwallowShorterEnemies: false,
+      hasPhaseScales: false
+    });
+    expect(next.tailHazards).toEqual([]);
+    expect(next.activeSkill).toEqual({
+      type: "dash",
+      charges: 1,
+      maxCharges: 1,
+      cooldownMs: 9000,
+      recoveryEndsAt: null,
+      invulnerableUntil: null
+    });
+    expect(next.summary).toBeNull();
+  });
+
+  it("progresses adventure levels as score grows", () => {
     vi.spyOn(Math, "random").mockImplementation(() => 0.9);
     const base = setGameMode(createInitialState(), "adventure", 1);
     const state = runningState({
@@ -316,9 +402,8 @@ describe("engine", () => {
       foods: [{ x: base.snake[0].x + 1, y: base.snake[0].y }, ...base.foods.slice(1)]
     });
     const next = step(state, 1000);
-    expect(next.currentLevel).toBe(1);
-    expect(next.levelGoal).toBe(TARGET_SEGMENTS_PER_RUN);
-    expect(next.run.segmentIndex).toBe(1);
+    expect(next.currentLevel).toBe(2);
+    expect(next.levelGoal).toBe(28);
     expect(next.obstacles.length).toBeGreaterThan(0);
     vi.restoreAllMocks();
   });
