@@ -111,7 +111,7 @@ export function tickDashRecovery(skill: ActiveSkillState, now: number): ActiveSk
   }
 
   let charges = skill.charges;
-  let recoveryEndsAt = skill.recoveryEndsAt;
+  let recoveryEndsAt: number | null = skill.recoveryEndsAt;
   while (recoveryEndsAt !== null && now >= recoveryEndsAt && charges < skill.maxCharges) {
     charges += 1;
     recoveryEndsAt = charges < skill.maxCharges ? recoveryEndsAt + skill.cooldownMs : null;

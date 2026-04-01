@@ -428,7 +428,7 @@ export function buildUpgradeOffers(
   state: GameState,
   source: UpgradeDraft["source"]
 ): { offers: UpgradeDefinition[]; run: RogueliteRunState } {
-  let run = { ...state.run, upgradeDraft: null };
+  let run: RogueliteRunState = { ...state.run, upgradeDraft: null };
   let pool = eligibleUpgrades(state);
   const offers: UpgradeDefinition[] = [];
 
